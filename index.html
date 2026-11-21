@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#efe5cf">
+<meta name="description" content="〈范進中舉〉學習遊戲：范進命運棋。高中國文課堂用，2–4 人同機輪流，3D／2D 雙版本。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2710%27 fill=%27%23b23a2a%27/%3E%3Ctext x=%2732%27 y=%2746%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%23fff3e0%27%3E范%3C/text%3E%3C/svg%3E">
+<title>范進命運棋｜〈范進中舉〉學習遊戲</title>
+<!--
+  ====================================================================
+  范進命運棋 ── 〈范進中舉〉課堂學習遊戲
+  - 單一 HTML 檔：HTML + Tailwind CDN + 原生 JavaScript
+  - 3D 版使用 three.js（CDN 動態載入）；載入失敗或效能不足時自動改用 2D 版
+  - 遊戲邏輯與畫面（renderer）分離：切換 3D／2D 不會遺失進度
+  - 背景音樂讀取同資料夾的 bgm.mp3；音效以 Web Audio 輕量合成
+  - 原創程式碼，未使用任何參考作品之程式
+  ====================================================================
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  // Tailwind 自訂色票：宣紙、墨、朱砂、黛青、赭石、金
+  tailwind.config = { theme: { extend: {
+    colors: { paper:'#efe5cf', paper2:'#f7f0df', ink:'#1f1a17', zhu:'#b23a2a', dai:'#2f4858', zhe:'#7a4b2a', jin:'#b8893b', song:'#3d6b4f' },
+    fontFamily: { kai:['"LXGW WenKai TC"','"Noto Serif TC"','serif'], serif:['"Noto Serif TC"','serif'] }
+  } } };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Serif+TC:wght@400;600;900&display=swap" rel="stylesheet">
+<style>
+  /* ========== 基本：宣紙底紋 ========== */
+  :root{
+    --paper:#efe5cf; --paper2:#f7f0df; --ink:#1f1a17; --zhu:#b23a2a; --dai:#2f4858; --zhe:#7a4b2a; --jin:#b8893b; --song:#3d6b4f;
+    --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .25 0 0 0 0 .17 0 0 0 .10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{
+    font-family:"Noto Serif TC",serif; color:var(--ink); background-color:var(--paper);
+    background-image:var(--noise), radial-gradient(ellipse at 50% 40%, rgba(255,250,235,.9), rgba(214,196,160,.55) 100%);
+    background-attachment:fixed; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+    touch-action:manipulation; overflow:hidden;
+  }
+  .kai{font-family:"LXGW WenKai TC","Noto Serif TC",serif}
+  .paper-card{background-color:var(--paper2); background-image:var(--noise); border:1px solid rgba(90,60,30,.35);
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -8px rgba(60,40,20,.45); border-radius:10px}
+  .ink-border{border:2px solid var(--ink); box-shadow:3px 3px 0 rgba(31,26,23,.85)}
+  /* 朱砂印章風格按鈕 */
+  .btn-seal{font-family:"LXGW WenKai TC",serif; background:var(--zhu); color:#fff7e8; border-radius:8px; padding:.6em 1.2em;
+    border:2px solid #7d2014; box-shadow:0 3px 0 #6a1b10, 0 6px 14px -6px rgba(120,30,20,.6); transition:transform .12s, box-shadow .12s, filter .2s;
+    letter-spacing:.12em; min-height:44px}
+  .btn-seal:active{transform:translateY(2px); box-shadow:0 1px 0 #6a1b10}
+  .btn-seal:disabled{filter:grayscale(.85) brightness(1.05); opacity:.6; cursor:not-allowed}
+  .btn-ink{font-family:"LXGW WenKai TC",serif; background:rgba(255,252,242,.75); color:var(--ink); border:1.5px solid rgba(31,26,23,.65);
+    border-radius:8px; padding:.45em .9em; min-height:40px; transition:background .15s, transform .1s}
+  .btn-ink:hover{background:#fffaf0} .btn-ink:active{transform:scale(.97)}
+  .btn-ink.on{background:var(--dai); color:#f5ecd8; border-color:var(--dai)}
+  .chip{display:inline-flex; align-items:center; gap:.25em; padding:.1em .55em; border-radius:999px; font-size:.85em; border:1px solid currentColor; white-space:nowrap}
+  .chip.up{color:#2f6b3f; background:rgba(61,107,79,.08)} .chip.down{color:var(--zhu); background:rgba(178,58,42,.08)} .chip.neu{color:var(--dai)}
+  .seal{display:inline-flex;align-items:center;justify-content:center;background:var(--zhu);color:#fff3e0;border-radius:4px;font-family:"LXGW WenKai TC",serif;
+    box-shadow:inset 0 0 0 2px rgba(255,240,220,.35)}
+  ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:rgba(90,60,30,.35);border-radius:8px}
+
+  /* ========== 畫面配置 ========== */
+  .screen{position:fixed; inset:0; display:none}
+  #scrGame{display:none; flex-direction:column}
+  #gameMain{flex:1; display:flex; min-height:0}
+  #boardWrap{flex:1; position:relative; min-width:0; min-height:0}
+  #boardHost{position:absolute; inset:0}
+  #panel{width:clamp(290px, 30vw, 390px); overflow-y:auto; padding:10px 12px 16px; border-left:1px solid rgba(90,60,30,.25); background:rgba(247,240,223,.55)}
+  @media (orientation: portrait), (max-width: 760px){
+    #gameMain{flex-direction:column; overflow-y:auto}
+    #boardWrap{flex:none; height:min(100vw, 58vh)}
+    #panel{width:auto; border-left:none; border-top:1px solid rgba(90,60,30,.25); overflow:visible}
+    #playerList{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  }
+  .topbar-btn{min-width:42px; min-height:40px; padding:.3em .6em; font-size:.92rem}
+
+  /* ========== 2D 棋盤 ========== */
+  .b2d{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(7,1fr); gap:calc(var(--u)*.05)}
+  .t2d{position:relative; border-radius:calc(var(--u)*.09); background-color:#f8f1e0; background-image:var(--noise); border:2px solid var(--tc);
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.55), 0 2px 4px rgba(60,40,20,.25); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; overflow:hidden; cursor:pointer; transition:transform .2s}
+  .t2d::before{content:""; position:absolute; left:0; right:0; top:0; height:18%; background:var(--tc); opacity:.9}
+  .t2d .tb{position:absolute; top:2%; left:50%; transform:translateX(-50%); color:#fff6e6; font-family:"LXGW WenKai TC",serif; font-size:calc(var(--u)*.13); line-height:1.25; z-index:1; white-space:nowrap}
+  .t2d .tn{font-family:"LXGW WenKai TC",serif; font-weight:700; font-size:calc(var(--u)*.2); line-height:1.15; margin-top:16%; padding:0 4%; color:#2a211b; word-break:keep-all}
+  .t2d .ti{position:absolute; right:5%; bottom:3%; font-size:calc(var(--u)*.1); opacity:.45}
+  .t2d.corner .tn{font-size:calc(var(--u)*.23)}
+  .t2d.pulse{animation:tpulse 1.2s ease-out 1}
+  @keyframes tpulse{0%{box-shadow:0 0 0 0 rgba(184,137,59,.9)} 50%{transform:scale(1.08); box-shadow:0 0 0 calc(var(--u)*.12) rgba(184,137,59,.25)} 100%{transform:scale(1); box-shadow:0 0 0 0 rgba(184,137,59,0)}}
+  .c2d{grid-area:2/2/7/7; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:calc(var(--u)*.12);
+    border-radius:calc(var(--u)*.15); background:radial-gradient(ellipse at 50% 45%, rgba(255,251,240,.92), rgba(236,224,196,.6)); border:1.5px solid rgba(90,60,30,.25); overflow:hidden}
+  .c2d .mtn{position:absolute; left:0; right:0; bottom:0; width:100%; height:55%; opacity:.22; pointer-events:none}
+  .c2d h2{font-family:"LXGW WenKai TC",serif; font-size:calc(var(--u)*.62); line-height:1; letter-spacing:.08em; margin:0; color:#211a15; text-shadow:1px 1px 0 rgba(255,255,255,.6)}
+  .c2d .sub{font-size:calc(var(--u)*.16); opacity:.7; letter-spacing:.2em}
+  .c2d .msg{font-family:"LXGW WenKai TC",serif; font-size:calc(var(--u)*.17); max-width:86%; text-align:center; min-height:2.6em; color:#3b2e25; line-height:1.35}
+  .tok2d{position:absolute; width:calc(var(--u)*.36); height:calc(var(--u)*.36); margin:calc(var(--u)*-.18) 0 0 calc(var(--u)*-.18); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; color:#fff8ea; font-family:"LXGW WenKai TC",serif; font-weight:700; font-size:calc(var(--u)*.2);
+    border:2px solid #fff3dc; box-shadow:0 3px 6px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.2); transition:left .24s ease, top .24s ease; z-index:5; pointer-events:none}
+  .tok2d.cur{z-index:6; animation:tokbob 1.4s ease-in-out infinite; box-shadow:0 0 0 3px var(--jin), 0 4px 10px rgba(0,0,0,.4)}
+  .tok2d.hop{animation:tokhop .24s ease-out 1}
+  @keyframes tokbob{0%,100%{transform:translateY(0)} 50%{transform:translateY(-12%)}}
+  @keyframes tokhop{0%{transform:translateY(0) scale(1)} 50%{transform:translateY(-55%) scale(1.12)} 100%{transform:translateY(0) scale(1)}}
+
+  /* 2D 骰子（CSS 3D 方塊，負擔很輕） */
+  .dice-scene{width:calc(var(--u)*.85); height:calc(var(--u)*.85); perspective:600px}
+  .dice-cube{width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform 1s cubic-bezier(.2,.75,.25,1)}
+  .dface{position:absolute; inset:0; background:#fffaf0; border:2px solid #3a2c22; border-radius:16%; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:12%;
+    box-shadow:inset 0 0 8px rgba(120,90,50,.35); backface-visibility:hidden}
+  .pip{width:62%; height:62%; margin:auto; border-radius:50%; background:#1f1a17}
+  .pip.red{background:var(--zhu)} .pip.big{width:95%;height:95%}
+
+  /* ========== 對話框 ========== */
+  .layer{position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(31,26,23,.42); backdrop-filter:blur(2px); z-index:50}
+  #sheetLayer{z-index:70}
+  .modal-box{width:min(640px, 100%); max-height:calc(100vh - 28px); overflow-y:auto; padding:18px 18px 16px; animation:popin .28s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes popin{from{opacity:0; transform:translateY(14px) scale(.96)} to{opacity:1; transform:none}}
+  .opt-btn{display:flex; gap:.6em; align-items:flex-start; width:100%; text-align:left; padding:.7em .85em; border-radius:9px; border:1.5px solid rgba(31,26,23,.45);
+    background:rgba(255,252,244,.85); font-size:1.05rem; min-height:48px; transition:background .15s, transform .1s, border-color .15s}
+  .opt-btn:hover:not(:disabled){background:#fff; border-color:var(--dai)}
+  .opt-btn:active:not(:disabled){transform:scale(.985)}
+  .opt-btn .ok{font-family:"LXGW WenKai TC",serif; flex:none; width:1.7em; height:1.7em; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--dai); color:#fff; font-size:.9em}
+  .opt-btn.right{background:#e3efe2; border-color:#2f6b3f} .opt-btn.right .ok{background:#2f6b3f}
+  .opt-btn.wrong{background:#f6e0db; border-color:var(--zhu)} .opt-btn.wrong .ok{background:var(--zhu)}
+  .opt-btn.gone{opacity:.28; text-decoration:line-through}
+  .qtimer{height:6px; border-radius:6px; background:rgba(47,72,88,.15); overflow:hidden} .qtimer > div{height:100%; background:var(--dai); transition:width 1s linear}
+  .card-face{border:3px double var(--tc,#3d6b4f); border-radius:12px; padding:16px; background-color:#fbf5e6; background-image:var(--noise); position:relative}
+  .card-face .ctype{position:absolute; top:-14px; left:16px; background:var(--tc); color:#fff7e8; padding:.1em .8em; border-radius:6px; font-family:"LXGW WenKai TC",serif; letter-spacing:.2em}
+  .flip-in{animation:flipin .5s cubic-bezier(.2,.8,.3,1)}
+  @keyframes flipin{from{transform:perspective(800px) rotateY(80deg); opacity:0} to{transform:none; opacity:1}}
+
+  /* 浮動數值 */
+  .floater{position:fixed; pointer-events:none; z-index:90; font-family:"LXGW WenKai TC",serif; font-weight:700; font-size:1.15rem; animation:floatup 1.4s ease-out forwards; text-shadow:0 1px 0 #fff}
+  @keyframes floatup{0%{opacity:0; transform:translateY(6px)} 15%{opacity:1} 100%{opacity:0; transform:translateY(-46px)}}
+  #toast{position:fixed; left:50%; top:62px; transform:translateX(-50%); z-index:95; display:none; max-width:min(92vw,560px); padding:.6em 1.1em; border-radius:10px;
+    background:rgba(31,26,23,.88); color:#f8efdc; font-family:"LXGW WenKai TC",serif; font-size:1.02rem; text-align:center; box-shadow:0 8px 20px rgba(0,0,0,.3)}
+
+  /* 玩家卡、胡屠戶量表 */
+  .pcard{position:relative; padding:8px 10px; border-radius:10px; border:1.5px solid rgba(90,60,30,.3); background:rgba(255,251,241,.75); transition:box-shadow .2s, transform .2s}
+  .pcard.cur{border-color:var(--jin); box-shadow:0 0 0 3px rgba(184,137,59,.35); transform:translateY(-1px)}
+  .ptok{width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff8ea; font-family:"LXGW WenKai TC",serif; font-weight:700; border:2px solid #fff3dc; box-shadow:0 2px 4px rgba(0,0,0,.3); flex:none}
+  .meter{height:10px; border-radius:10px; background:linear-gradient(90deg,#8e2b1f,#c98a3a 45%,#d9b45a 70%,#5d8a4f); position:relative; box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+  .meter .needle{position:absolute; top:-5px; width:4px; height:20px; margin-left:-2px; background:var(--ink); border-radius:2px; transition:left .8s cubic-bezier(.3,1.4,.5,1); box-shadow:0 0 0 2px #fff8ea}
+  #huFace svg path, #huFace svg ellipse{transition:d .6s}
+  .log-line{padding:2px 0; border-bottom:1px dashed rgba(90,60,30,.18); font-size:.86rem; line-height:1.35}
+  .title-mtn{position:absolute; left:0; right:0; bottom:0; width:100%; height:48vh; opacity:.28; pointer-events:none}
+  .fadein{animation:fadein .6s ease both} @keyframes fadein{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+  input[type=range]{accent-color:var(--zhu)}
+  .tbl th,.tbl td{padding:4px 6px; border-bottom:1px solid rgba(90,60,30,.18); vertical-align:top; font-size:.88rem}
+  textarea,input[type=text],input[type=number],select{background:rgba(255,253,246,.95); border:1.5px solid rgba(31,26,23,.4); border-radius:7px; padding:.35em .5em; font-family:inherit; user-select:text; -webkit-user-select:text}
+  .brush-underline{background:linear-gradient(transparent 70%, rgba(178,58,42,.25) 70%)}
+</style>
+</head>
+<body>
+<!-- 背景音樂：請把音檔命名為 bgm.mp3 放在同一資料夾即可替換 -->
+<audio id="bgm" src="bgm.mp3" loop preload="none"></audio>
+
+<!-- 共用：水墨遠山（SVG） -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="mtns" viewBox="0 0 1200 400" preserveAspectRatio="none">
+      <path d="M0 400 L0 250 C80 200 130 140 210 170 C280 195 320 120 400 110 C470 100 520 180 600 200 C660 215 700 160 760 150 C850 135 900 210 980 220 C1060 230 1120 180 1200 170 L1200 400Z" fill="#2b2622" opacity=".55"/>
+      <path d="M0 400 L0 300 C90 270 150 230 240 255 C330 280 380 220 470 225 C560 230 600 300 700 295 C790 290 850 240 940 250 C1040 262 1100 300 1200 285 L1200 400Z" fill="#1f1a17" opacity=".75"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ===================== 首頁 ===================== -->
+<section id="scrTitle" class="screen">
+  <svg class="title-mtn"><use href="#mtns"/></svg>
+  <div class="relative h-full w-full flex flex-col items-center justify-center px-6 text-center fadein">
+    <div class="kai text-lg md:text-xl tracking-[.4em] opacity-70 mb-2">〈范進中舉〉課堂學習遊戲</div>
+    <h1 class="kai text-[clamp(3rem,11vw,7rem)] leading-none font-bold tracking-widest">范進<span class="text-zhu">命運</span>棋</h1>
+    <div class="mt-3 flex items-center gap-3 opacity-80">
+      <span class="seal w-10 h-10 text-lg">儒林</span>
+      <span class="kai text-base md:text-lg">噫！好了！我中了！</span>
+    </div>
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-md sm:max-w-xl justify-center">
+      <button id="btnNew" class="btn-seal text-xl flex-1" data-testid="btn-new">開始新局</button>
+      <button id="btnResume" class="btn-ink text-lg flex-1" style="display:none" data-testid="btn-resume">繼續上局</button>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2 justify-center">
+      <button class="btn-ink" data-open="rules">📖 玩法說明</button>
+      <button class="btn-ink" data-open="teacher">🧑‍🏫 教師模式（題庫）</button>
+      <button class="btn-ink" data-open="settings">⚙ 音樂／音效</button>
+    </div>
+    <p class="mt-6 text-xs opacity-60 max-w-md">建議以平板或電腦橫放遊玩。預設 3D 棋盤，裝置跑不動會自動改用 2D，遊戲中也能隨時切換。</p>
+  </div>
+</section>
+
+<!-- ===================== 開局設定 ===================== -->
+<section id="scrSetup" class="screen overflow-y-auto">
+  <div class="min-h-full flex items-center justify-center p-4">
+    <div class="paper-card w-full max-w-2xl p-5 md:p-7 fadein">
+      <h2 class="kai text-3xl mb-1">開局設定</h2>
+      <p class="text-sm opacity-70 mb-4">2–4 位玩家（或小組）共用一台裝置，輪流擲骰。</p>
+      <div class="mb-4">
+        <div class="kai text-lg mb-2">玩家／組數</div>
+        <div id="pCountBtns" class="flex gap-2">
+          <button class="btn-ink" data-n="2">2</button><button class="btn-ink" data-n="3">3</button><button class="btn-ink" data-n="4">4</button>
+        </div>
+      </div>
+      <div id="pRows" class="grid gap-2 mb-5"></div>
+      <div class="grid md:grid-cols-3 gap-4 mb-5">
+        <label class="block"><div class="kai text-lg mb-1">遊戲時間</div>
+          <select id="selTime" class="w-full">
+            <option value="0">不計時（老師手動結算）</option>
+            <option value="10">10 分鐘</option>
+            <option value="20" selected>20 分鐘</option>
+            <option value="custom">自訂…</option>
+          </select>
+          <input id="inpTimeCustom" type="number" min="1" max="180" value="15" class="w-full mt-1" style="display:none" placeholder="分鐘">
+        </label>
+        <label class="block"><div class="kai text-lg mb-1">答題限時</div>
+          <select id="selQTime" class="w-full">
+            <option value="0">不限時</option><option value="20">20 秒</option><option value="30" selected>30 秒</option><option value="45">45 秒</option>
+          </select>
+        </label>
+        <label class="block"><div class="kai text-lg mb-1">棋盤畫面</div>
+          <select id="selMode" class="w-full">
+            <option value="auto" selected>自動（3D，跑不動改 2D）</option><option value="3d">固定 3D</option><option value="2d">固定 2D（省電）</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button class="btn-ink" id="btnSetupBack">返回</button>
+        <button class="btn-seal text-xl" id="btnStart" data-testid="btn-start">開始應考 ▶</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 遊戲畫面 ===================== -->
+<section id="scrGame" class="screen">
+  <header class="flex items-center gap-2 px-3 py-1.5 border-b border-[rgba(90,60,30,.25)] bg-[rgba(247,240,223,.75)]">
+    <div class="kai text-xl font-bold whitespace-nowrap">范進<span class="text-zhu">命運</span>棋</div>
+    <div id="roundInfo" class="kai text-sm opacity-70 whitespace-nowrap"></div>
+    <div class="flex-1"></div>
+    <div id="timerBox" class="kai text-lg px-2 whitespace-nowrap" style="display:none">⏳ <span id="timerTxt">20:00</span></div>
+    <button id="btnMode" class="btn-ink topbar-btn" title="切換 3D／2D" data-testid="btn-mode">2D</button>
+    <button id="btnBgm" class="btn-ink topbar-btn" title="背景音樂開關">♪</button>
+    <button id="btnSfx" class="btn-ink topbar-btn" title="音效開關">🔔</button>
+    <button class="btn-ink topbar-btn" data-open="settings" title="設定">⚙</button>
+    <button class="btn-ink topbar-btn" data-open="rules" title="玩法">📖</button>
+    <button id="btnEnd" class="btn-ink topbar-btn" title="結束並結算">🏁</button>
+  </header>
+  <div id="gameMain">
+    <div id="boardWrap"><div id="boardHost"></div>
+      <div id="modeBadge" class="absolute left-2 bottom-2 text-xs px-2 py-1 rounded bg-[rgba(255,250,238,.8)] border border-[rgba(90,60,30,.3)] pointer-events-none"></div>
+    </div>
+    <aside id="panel">
+      <!-- 目前回合 -->
+      <div class="paper-card p-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span id="curTok" class="ptok"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs opacity-60" id="curRound">第 1 輪</div>
+            <div class="kai text-xl truncate" id="curName">—</div>
+          </div>
+          <span id="curRank" class="chip neu kai"></span>
+        </div>
+        <button id="btnRoll" class="btn-seal w-full mt-3 text-2xl" data-testid="btn-roll">🎲 擲骰子</button>
+        <div id="hintLine" class="text-xs opacity-60 mt-2 text-center">輪到你了！擲骰前進，停在哪一格就要答題或抽卡。</div>
+      </div>
+      <!-- 胡屠戶臉色 -->
+      <div class="paper-card p-3 mb-3">
+        <div class="flex items-center gap-3">
+          <div id="huFace" class="w-16 h-16 flex-none"></div>
+          <div class="flex-1 min-w-0">
+            <div class="kai text-base">胡屠戶的臉色 <span id="huMood" class="chip neu ml-1"></span></div>
+            <div id="huQuote" class="kai text-sm mt-1 leading-snug opacity-85"></div>
+          </div>
+        </div>
+        <div class="meter mt-3"><div id="huNeedle" class="needle" style="left:10%"></div></div>
+        <div class="flex justify-between text-[11px] opacity-60 mt-1"><span>現世寶</span><span>相公</span><span>賢婿老爺</span></div>
+      </div>
+      <!-- 玩家 -->
+      <div id="playerList" class="grid gap-2 mb-3"></div>
+      <!-- 紀錄 -->
+      <div class="paper-card p-3">
+        <div class="kai text-base mb-1">📜 科場紀事</div>
+        <div id="logBox" class="max-h-48 overflow-y-auto pr-1"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===================== 結算畫面 ===================== -->
+<section id="scrEnd" class="screen overflow-y-auto">
+  <div class="min-h-full flex items-center justify-center p-4">
+    <div class="paper-card w-full max-w-3xl p-5 md:p-7 fadein">
+      <div class="text-center">
+        <div class="kai text-sm tracking-[.4em] opacity-60">放　榜</div>
+        <h2 class="kai text-4xl md:text-5xl font-bold my-1">金榜題名</h2>
+        <p class="text-sm opacity-70">聲望＝體面＋人情＋功名加分（秀才 +5、舉人 +10）</p>
+      </div>
+      <div id="rankList" class="grid gap-3 my-5"></div>
+      <div id="awardList" class="flex flex-wrap gap-2 justify-center mb-5"></div>
+      <div class="paper-card p-4 mb-5" style="border-color:var(--zhu)">
+        <div class="kai text-xl mb-2">🖌 課後省思</div>
+        <ol id="reflectList" class="list-decimal pl-6 space-y-2 kai text-lg leading-relaxed"></ol>
+      </div>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button class="btn-ink" id="btnHome">回首頁</button>
+        <button class="btn-seal text-lg" id="btnAgain">再考一科（同設定）</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 對話框圖層：遊戲流程用 -->
+<div id="modalLayer" class="layer"><div id="modalBox" class="modal-box paper-card"></div></div>
+<!-- 對話框圖層：規則、設定、教師模式（可疊在上面） -->
+<div id="sheetLayer" class="layer"><div id="sheetBox" class="modal-box paper-card" style="width:min(860px,100%)"></div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* =====================================================================
+   一、資料區：預設題庫、棋盤格、命運卡／世態卡
+   題目皆為原創；引用之〈范進中舉〉原文（《儒林外史》）屬公有領域。
+   題目格式：{ cat 分類, q 題幹, o 選項陣列(2–4 個), a 正解索引(0 起算), e 解析 }
+   ===================================================================== */
+const CATS = ['字音字形','詞義','文意理解','人物形象','寫作手法','科舉制度','作者與儒林外史','主旨'];
+
+const DEFAULT_QUESTIONS = [
+  // ── 字音字形 ──
+  {cat:'字音字形', q:'「范進唯唯連聲」中「唯唯」的讀音是？', o:['ㄨㄟˊ ㄨㄟˊ','ㄨㄟˇ ㄨㄟˇ','ㄨㄟˋ ㄨㄟˋ','ㄙㄨㄟ ㄙㄨㄟ'], a:1, e:'「唯唯」是恭敬應答的聲音，讀作ㄨㄟˇ。「唯一、唯獨」的「唯」才讀ㄨㄟˊ。'},
+  {cat:'字音字形', q:'「走出大門不多路，一腳踹在塘裡」的「踹」讀作？', o:['ㄔㄨㄞˋ','ㄉㄨㄢˋ','ㄔㄨㄞˇ','ㄓㄨㄞˋ'], a:0, e:'踹，讀ㄔㄨㄞˋ，指用腳踩、踢。范進歡喜發瘋往外跑，一腳踩進了水塘。'},
+  {cat:'字音字形', q:'「大家簇擁著要喜錢」的「簇」讀作？', o:['ㄗㄨˊ','ㄘㄨˋ','ㄘㄡˋ','ㄓㄨˊ'], a:1, e:'簇，讀ㄘㄨˋ，聚集的意思；「簇擁」是一群人圍著。常有人誤讀成ㄗㄨˊ。'},
+  {cat:'字音字形', q:'「叫我一家老小嗑西北風？」的「嗑」讀作？', o:['ㄏㄜ','ㄍㄜˊ','ㄎㄜˋ','ㄎㄜ'], a:2, e:'嗑，讀ㄎㄜˋ，此處指喝、吃。「嗑西北風」就是只能喝風、沒東西吃，胡屠戶藉此拒絕借錢。'},
+  {cat:'字音字形', q:'下列與本文有關的詞語，何者用字完全正確？', o:['在茅草蓬下燙酒','賴蝦蟆想吃天鵝肉','抱著雞一步一踱','罵得狗血噴投'], a:2, e:'應為「茅草棚」「癩蝦蟆」「狗血噴頭」。「踱」是慢步行走，寫范進賣雞時慢吞吞、東張西望的樣子。'},
+  // ── 詞義 ──
+  {cat:'詞義', q:'胡屠戶說：「不知因我積了什麼德，帶挈你中了個相公。」其中「帶挈」的意思是？', o:['攜帶禮物前來','提攜、讓人沾光','拖累、連累','哄騙、欺瞞'], a:1, e:'「挈」是提，「帶挈」就是提攜。胡屠戶把女婿中秀才歸功於自己積德，又自大又好笑。'},
+  {cat:'詞義', q:'本文中的「相公」與「老爺」，分別是對哪兩種身分的稱呼？', o:['秀才／舉人','丈夫／父親','舉人／進士','宰相／知縣'], a:0, e:'科舉時代稱秀才為「相公」、稱舉人為「老爺」。所以胡屠戶罵范進：中了相公，就「痴心就想中起老爺來」。'},
+  {cat:'詞義', q:'鄰居勸胡屠戶：「你沒奈何，權變一權變。」其中「權變」的意思是？', o:['動用權力','改變心意','權衡變通、臨機應變','權衡後放棄'], a:2, e:'權變是權衡變通。胡屠戶怕「星宿打不得」，鄰居勸他事急從權，變通一下去打醒女婿。'},
+  {cat:'詞義', q:'報帖寫「捷報貴府老爺范諱進」，在「進」字前加「諱」的作用是？', o:['表示忌諱、不吉利','表示尊敬，不敢直呼其名','表示隱瞞身分','表示名字寫錯了'], a:1, e:'古人稱呼他人時在名字前加「諱」，表示尊敬，不敢直呼其名。'},
+  // ── 文意理解 ──
+  {cat:'文意理解', q:'范進考中秀才時是幾歲？', o:['二十歲','三十六歲','五十四歲','六十歲'], a:2, e:'范進二十歲開始應考，前後考了二十餘次，直到五十四歲才中秀才，同年又中了舉人。'},
+  {cat:'文意理解', q:'出榜那天，范進為什麼抱著母雞到集上？', o:['要送給胡屠戶賠罪','家裡沒有早飯米，母親要他賣雞買米','要拿去拜文昌帝君','鄰居託他代賣'], a:1, e:'原文：「家裡沒有早飯米，母親吩咐范進道：『我有一隻生蛋的母雞，你快拿集上去賣了，買幾升米來煮餐粥吃。』」窮困正為後文的轉變鋪墊。'},
+  {cat:'文意理解', q:'鄰居跑到集上告訴范進「你中了舉」，范進最初的反應是？', o:['立刻丟下雞跑回家','以為鄰居哄他，裝作沒聽見繼續賣雞','當場歡喜發瘋','請鄰居幫忙把雞賣掉'], a:1, e:'范進「道是哄他，只裝不聽見」，還說「莫誤了我賣雞」。多年落榜，讓他根本不敢相信。'},
+  {cat:'文意理解', q:'范進歡喜發瘋後，報錄人出了什麼主意？', o:['請郎中開藥方','讓他最怕的人打他一個嘴巴，說中舉是騙他的','把報帖撕掉','送他到廟裡求神'], a:1, e:'報錄人說他「歡喜很了，痰湧上來，迷了心竅」，只要讓他怕的人打一嘴巴、嚇他一嚇，把痰吐出來就會明白。'},
+  {cat:'文意理解', q:'胡屠戶打完范進後，手掌彎不過來。他自己認為原因是？', o:['打得太用力扭傷了','天上的文曲星打不得，菩薩計較起來了','殺豬太久得了職業病','郎中的膏藥有問題'], a:1, e:'胡屠戶懊惱道：「果然天上文曲星是打不得的，而今菩薩計較起來了！」寫出他的迷信，也是作者的幽默諷刺。'},
+  {cat:'文意理解', q:'報帖寫范進高中「第七名亞元」。關於「亞元」，下列何者正確？', o:['亞元就是鄉試第七名的正式名稱','亞元原指鄉試第二名，報錄人這樣寫是有意討好','亞元是殿試第二名','亞元是會試第一名'], a:1, e:'「亞元」本指鄉試第二名。范進考第七名卻被稱亞元，是報錄人為了討喜錢而吹捧。'},
+  {cat:'文意理解', q:'胡屠戶前後兩次上門賀喜，帶的禮物分別是？', o:['一副大腸和一瓶酒／七、八斤肉和四、五千錢','一隻母雞／一斗白米','一瓶酒／五十兩銀子','半盆豬油／幾升米'], a:0, e:'中秀才時只帶一副大腸、一瓶酒；中舉後帶七、八斤肉和四、五千錢。禮物輕重的落差，正是「前倨後恭」的證據。'},
+  {cat:'文意理解', q:'「自古無場外的舉人」這句話的意思是？', o:['舉人都住在考場外面','不進考場就不可能中舉，總要試了才有機會','考場外的人都比舉人聰明','舉人不必參加考試'], a:1, e:'范進借不到盤纏仍想應考，心想：「自古無場外的舉人，如不進去考他一考，如何甘心？」'},
+  // ── 人物形象 ──
+  {cat:'人物形象', q:'面對胡屠戶的辱罵，范進多半「唯唯連聲」或默默離開。這顯示范進的性格是？', o:['剛直不阿','懦弱、逆來順受','足智多謀','尖酸刻薄'], a:1, e:'長年落榜又窮困，范進在丈人面前毫無地位，只能恭敬稱是，不敢頂嘴。'},
+  {cat:'人物形象', q:'胡屠戶說「這些中老爺的，都是天上的文曲星」，又罵范進「尖嘴猴腮」。他評價人的標準主要是？', o:['品德與學問','功名與財富地位','孝順與否','勤勞與否'], a:1, e:'他用功名、財富衡量人：范進沒中舉時是「現世寶」，中舉後就成了「才學又高，品貌又好」。'},
+  {cat:'人物形象', q:'胡屠戶先罵范進「尖嘴猴腮」，後誇他「品貌又好」。最適合形容胡屠戶的成語是？', o:['表裡如一','前倨後恭','剛正不阿','虛懷若谷'], a:1, e:'前倨後恭：先傲慢、後恭敬，正是胡屠戶趨炎附勢的寫照。'},
+  {cat:'人物形象', q:'胡屠戶打了范進一巴掌，「心裡到底還是怕的，那手早顫起來」。這個細節寫出胡屠戶？', o:['下手太重而內疚','外表凶狠，內心迷信又畏懼功名權勢','身體虛弱','其實非常疼愛女婿'], a:1, e:'平日凶神惡煞，面對「老爺」卻怕得發抖。他的凶狠是裝出來的，真正敬畏的是功名。'},
+  {cat:'人物形象', q:'范進清醒後，「見丈人在跟前，恐怕又要來罵」。這句話透露了什麼？', o:['范進中舉後變得驕傲','長期受丈人欺壓，即使中舉仍心存畏懼','范進的瘋病還沒好','范進打算報復胡屠戶'], a:1, e:'一句心理描寫，寫盡范進多年被罵的陰影；而胡屠戶下一刻就改口叫「賢婿老爺」，更顯滑稽。'},
+  // ── 寫作手法 ──
+  {cat:'寫作手法', q:'本文塑造胡屠戶形象，最主要的方法是？', o:['大量引用典故','透過人物對話（語言描寫）','用景物描寫襯托','作者直接評論'], a:1, e:'胡屠戶的粗俗、勢利，幾乎全靠他自己的話呈現──這正是本課學習重點：運用對話塑造人物。'},
+  {cat:'寫作手法', q:'鄰居說：「少頃范老爺洗臉，還要洗下半盆豬油來。」運用了哪一種修辭？', o:['譬喻','誇飾','排比','設問'], a:1, e:'臉上不可能洗出半盆豬油，這是誇飾，取笑胡屠戶滿手油膩，也調侃那一巴掌打得「親切」。'},
+  {cat:'寫作手法', q:'范進中舉前斷糧兩、三天無人聞問；中舉後鄰居送雞蛋、白酒、斗米。作者並列兩者，主要運用？', o:['對比','倒敘','象徵','頂真'], a:0, e:'一冷一熱前後對照，凸顯世態炎涼、趨炎附勢。'},
+  {cat:'寫作手法', q:'作者沒有直接批評科舉，而是讓人物的言行自己暴露荒謬。這種寫法是？', o:['直抒胸臆','寓諷刺於敘事','借景抒情','托物言志'], a:1, e:'《儒林外史》以客觀描寫寄寓諷刺，讀者先是發笑，回頭才感到心酸，諷刺因此更深刻。'},
+  {cat:'寫作手法', q:'胡屠戶把「癩蝦蟆想吃天鵝肉」改說成「想天鵝屁吃」，效果是？', o:['讓語氣更文雅','語氣更粗俗鄙夷，貼合屠戶身分','表示他記錯了俗語','暗示他其實很欣賞范進'], a:1, e:'連「天鵝屁」都別想吃，比原本的俗語更刻薄，也符合市井屠戶的口吻。'},
+  {cat:'寫作手法', q:'「屠戶見女婿衣裳後襟滾皺了許多，一路低著頭替他扯了幾十回。」主要是哪一種描寫？', o:['肖像描寫','景物描寫','動作細節描寫','心理描寫'], a:2, e:'「低著頭」「扯了幾十回」的動作細節，把胡屠戶的巴結諂媚寫得活靈活現。'},
+  // ── 科舉制度 ──
+  {cat:'科舉制度', q:'清代科舉考試由低到高的順序是？', o:['鄉試→童試→會試→殿試','童試→鄉試→會試→殿試','童試→會試→鄉試→殿試','會試→童試→鄉試→殿試'], a:1, e:'童試考中為生員（秀才）→鄉試考中為舉人→會試考中為貢士→殿試考中為進士。'},
+  {cat:'科舉制度', q:'鄉試考中的人稱為什麼？第一名又叫什麼？', o:['秀才／案首','舉人／解元','貢士／會元','進士／狀元'], a:1, e:'鄉試考中稱舉人，第一名稱解元。范進這次就是在廣東鄉試中了舉人。'},
+  {cat:'科舉制度', q:'「連中三元」指連續考中哪三個第一名？', o:['解元、會元、狀元','狀元、榜眼、探花','秀才、舉人、進士','案首、解元、會元'], a:0, e:'鄉試第一解元、會試第一會元、殿試第一狀元，三者連中稱「連中三元」。狀元、榜眼、探花則是殿試前三名。'},
+  {cat:'科舉制度', q:'關於明清考場的「號舍」，下列敘述何者正確？', o:['寬敞舒適，可攜帶家眷','考生在窄小的號舍裡連考數日，吃喝睡都在裡面','每天考完都可以回家休息','只在童試時使用'], a:1, e:'鄉試、會試連考三場、每場三天，考生不得離開窄小的號舍，白天以木板為桌椅，晚上屈身而睡。'},
+  {cat:'科舉制度', q:'下列關於科舉的敘述，何者正確？', o:['考生年齡有嚴格上限','科舉不限年齡，白髮童生並不罕見','考上秀才就能直接當官','鄉試每年都舉行'], a:1, e:'科舉不限年齡，許多人從黑髮考到白髮；鄉試三年一次；秀才只是功名的起點，中舉後才有機會出仕。'},
+  // ── 作者與儒林外史 ──
+  {cat:'作者與儒林外史', q:'〈范進中舉〉選自哪一部書？作者是誰？', o:['《西遊記》／吳承恩','《儒林外史》／吳敬梓','《紅樓夢》／曹雪芹','《聊齋誌異》／蒲松齡'], a:1, e:'本文節選自《儒林外史》第三回，作者吳敬梓，字敏軒，一字文木，安徽全椒人，清代小說家。'},
+  {cat:'作者與儒林外史', q:'關於《儒林外史》，下列何者正確？', o:['以神魔鬥法為主的章回小說','中國最負盛名的諷刺小說，批判科舉取士的弊害','描寫三國爭霸的歷史小說','記錄作者童年的散文集'], a:1, e:'《儒林外史》是章回小說，藉讀書人熱中功名的醜態諷刺科舉制度。故事設在明代，其實影射作者身處的清代。'},
+  {cat:'作者與儒林外史', q:'吳敬梓三十六歲時被推薦參加「博學鴻詞科」，他的態度是？', o:['欣然赴考並高中','推辭不就，從此無意仕進','赴考落第後發瘋','改考武舉'], a:1, e:'他推辭不考，從此不再追求官位；後來不善營生，耗盡家產，晚年潦倒，客死揚州。'},
+  // ── 主旨 ──
+  {cat:'主旨', q:'下列何者最能說明本文主旨？', o:['讚美范進堅持不懈終於成功','藉范進中舉前後的遭遇，諷刺科舉對讀書人的毒害與世態炎涼','強調孝順母親的重要','描寫清代市集的熱鬧'], a:1, e:'本文透過范進喜極而瘋、眾人前後態度的轉變，反映科舉制度下的社會現實。'},
+  {cat:'主旨', q:'哪一句俗語最能概括鄰居們在范進中舉前後的轉變？', o:['貧居鬧市無人問，富在深山有遠親','遠親不如近鄰','一分耕耘，一分收穫','近朱者赤，近墨者黑'], a:0, e:'窮時無人聞問，發達了人人來親近──正是范進中舉前後的寫照。'},
+  {cat:'主旨', q:'是非題：作者在文中直接發表議論，痛罵科舉制度。', o:['○ 正確','✕ 錯誤'], a:1, e:'錯。全文沒有直接議論，而是透過客觀描寫，讓讀者自己體會其中的諷刺。'},
+  {cat:'主旨', q:'范進盼了三十多年終於中舉，卻歡喜得發瘋。這個情節最值得我們反思的是？', o:['考試一定要考第一','把功名當成人生唯一目標，可能讓人失去平衡','不要相信報錄人','讀書人不應該賣雞'], a:1, e:'考試是人生的一部分，不是全部。合宜的求學態度，是為了充實自己，而不是被成敗綁架。'}
+];
+
+/* ---------- 身分（功名）---------- */
+const RANKS = [
+  { name:'童生', call:'童生', bonus:0 },
+  { name:'秀才', call:'相公', bonus:5 },
+  { name:'舉人', call:'老爺', bonus:10 }
+];
+
+/* ---------- 胡屠戶臉色：依玩家功名與體面計算 0–100 ---------- */
+const MOODS = [
+  { min:0,  key:'scorn',   label:'鄙夷', call:'現世寶',   quote:'「我自倒運，把個女兒嫁與你這現世寶、窮鬼！」' },
+  { min:25, key:'sneer',   label:'嫌棄', call:'窮鬼',     quote:'「不三不四，就想天鵝屁吃！」' },
+  { min:40, key:'lecture', label:'說教', call:'女婿',     quote:'「你如今既中了相公，凡事要立起個體統來。」' },
+  { min:60, key:'polite',  label:'客氣', call:'相公',     quote:'「不知因我積了什麼德，帶挈你中了個相公。」' },
+  { min:80, key:'flatter', label:'奉承', call:'賢婿老爺', quote:'「我的這個賢婿，才學又高，品貌又好！」' }
+];
+function huAtt(p){ return Math.max(0, Math.min(100, p.rank*40 + Math.min(30, p.timian*2))); }
+function huMood(p){ const a = huAtt(p); let m = MOODS[0]; for (const x of MOODS) if (a >= x.min) m = x; return m; }
+
+/* ---------- 棋盤格（依課文時間軸，順時針 24 格）----------
+   type：start 起點｜q 問答｜exam 考場｜butcher 胡屠戶｜fate 命運｜world 世態｜event 情節
+   落在 q/exam/butcher/event 格要先答題，答對與否會影響結果。 */
+const TYPE_STYLE = {
+  start:  { color:'#b8893b', badge:'起', name:'起點' },
+  q:      { color:'#2f4858', badge:'問', name:'問答' },
+  exam:   { color:'#b23a2a', badge:'考', name:'考場' },
+  butcher:{ color:'#7a4b2a', badge:'屠', name:'胡屠戶' },
+  fate:   { color:'#3d6b4f', badge:'命', name:'命運卡' },
+  world:  { color:'#6b4f7a', badge:'世', name:'世態卡' },
+  event:  { color:'#4b4540', badge:'事', name:'情節' }
+};
+
+// 胡屠戶格的通用效果：依臉色決定是挨罵、被訓，還是被奉承
+function butcherEffect(p, ok){
+  const a = huAtt(p);
+  if (a < 40) return { msg:'胡屠戶劈頭就罵：「你這現世寶、窮鬼，歷年以來，不知累了我多少！」' + (ok?'你答得好，總算沒被罵得太難看。':'你只能唯唯連聲。'), d:{ timian: ok ? -1 : -2 }, tag:'scold' };
+  if (a < 80) return { msg:'胡屠戶擺起長輩架子訓話：「凡事要立起個體統來。」' + (ok?'你應對得體，他滿意地點頭。':'你只好陪他喝到醺醺的。'), d: ok ? { timian:1 } : { renqing:-1 } };
+  return { msg:'胡屠戶堆滿笑臉：「我每常說，我的這個賢婿，才學又高，品貌又好！」還塞給你幾千錢。', d:{ renqing:3, timian: ok ? 1 : 0 }, tag:'flatter' };
+}
+
+const TILES = [
+  { name:'應考半生', type:'start', story:'范進二十歲起應考，前後考了二十餘次。每回到這裡，又是一年。', pass:'又熬過一年，鄰里多少有些同情：人情 +1。' },
+  { name:'寒窗苦讀', type:'q', cats:['字音字形','詞義'], story:'青燈黃卷，苦讀不輟。',
+    effect:(p,ok)=> ok ? { msg:'學問又進一步。', d:{timian:1} } : { msg:'這題沒答好，再讀一遍吧。' } },
+  { name:'童試', type:'exam', cats:['科舉制度','字音字形'], story:'童試考中稱「生員」，俗稱秀才。范進直到五十四歲才考中。',
+    eligible:p=>p.rank===0,
+    effect:(p,ok)=>{
+      if (p.rank===0) return ok ? { msg:'進學了！你中了秀才，成了人人口中的「相公」。', d:{timian:3}, rank:1 } : { msg:'童試落第，又得再熬一年。', d:{timian:-1} };
+      return ok ? { msg:'你已是有功名的人，回到童試考場替後生講解經義，頗受敬重。', d:{timian:1} } : { msg:'舊地重遊，想起當年屢試不第的日子。' };
+    } },
+  { name:'進學回家', type:'event', cats:['文意理解'], story:'「范進進學回家，母親、妻子，俱各歡喜。」',
+    effect:(p,ok)=> p.rank>=1 ? { msg:'母親、妻子俱各歡喜，正待燒鍋做飯。', d:{timian: ok?2:1} } : { msg:'你還沒進學，只能看著別人家熱熱鬧鬧。', d: ok?{renqing:1}:{} } },
+  { name:'屠戶賀喜', type:'butcher', cats:['人物形象','詞義'], story:'胡屠戶拿著一副大腸和一瓶酒走了進來：「我自倒運，把個女兒嫁與你這現世寶……」',
+    effect:(p,ok)=>butcherEffect(p,ok) },
+  { name:'命運', type:'fate', story:'抽一張命運卡。' },
+  { name:'同案文會', type:'q', cats:['作者與儒林外史','文意理解'], story:'魏好古約了一班同案的朋友，因是鄉試年，做了幾個文會。',
+    effect:(p,ok)=> ok ? { msg:'以文會友，結交了幾位同案。', d:{renqing:2} } : { msg:'文會上答不上話，只交到一個朋友。', d:{renqing:1} } },
+  { name:'借盤纏', type:'butcher', cats:['詞義','寫作手法'], story:'范進沒有盤費，去同丈人商議，被胡屠戶「一口啐在臉上，罵了一個狗血噴頭」。',
+    effect:(p,ok)=> huAtt(p) < 80
+      ? { msg:'胡屠戶一口啐在你臉上：「我一天殺一個豬還賺不得錢把銀子，都把與你去丟在水裡？」', d:{timian: ok?-1:-2}, tag:'scold' }
+      : { msg:'胡屠戶雙手奉上盤纏：「老爺要用錢，儘管拿去！」', d:{renqing:2}, tag:'flatter' } },
+  { name:'世態', type:'world', story:'抽一張世態卡。' },
+  { name:'鄉試', type:'exam', cats:['科舉制度','文意理解'], story:'范進瞞著丈人，到城裡鄉試。鄉試三年一次，考中稱舉人。',
+    eligible:p=>p.rank===1,
+    effect:(p,ok)=>{
+      if (p.rank===0) return ok ? { msg:'你還只是童生，沒有資格進鄉試考場。在場外替考生搬行李，結了點人緣。', d:{renqing:1} } : { msg:'童生進不了鄉試考場，只能在外頭張望。' };
+      if (p.rank===1) return ok ? { msg:'高中了！你考中舉人，從此是「老爺」了！', d:{timian:4}, rank:2 } : { msg:'這一科沒中，回家又被丈人罵了一頓。', d:{timian:-1} };
+      return ok ? { msg:'新科舉人重回考場，同案們紛紛來請教。', d:{timian:2} } : { msg:'你在考場外指點後輩，卻講錯了一處，有點尷尬。' };
+    } },
+  { name:'號舍三場', type:'q', cats:['科舉制度'], story:'鄉試連考三場、每場三天，考生吃喝睡都在窄小的號舍裡。',
+    effect:(p,ok)=> ok ? { msg:'你在號舍裡撐過了九天，文章寫得不錯。', d:{timian:1} } : { msg:'號舍又窄又矮，熬壞了身子。', d:{timian:-1} } },
+  { name:'家中斷糧', type:'event', cats:['文意理解','主旨'], story:'「出了場，即便回家，家裡已是餓了兩、三天。」',
+    effect:(p,ok)=> p.rank>=2 ? { msg:'如今你是老爺，米糧自有人送上門來。', d:{renqing:2} } : (ok ? { msg:'你咬牙撐過了斷糧的日子，沒有向人低頭。', d:{timian:1} } : { msg:'餓得兩眼都看不見了，只好四處借米。', d:{timian:-1} }) },
+  { name:'抱雞賣集', type:'event', cats:['文意理解','字音字形'], story:'范進抱著雞，手裡插個草標，一步一踱，東張西望，在那裡尋人買。',
+    effect:(p,ok)=> ok ? { msg:'雞賣出去了，買回幾升米煮粥。', d:{renqing:1} } : { msg:'雞還沒賣出去，就被鄰居一把奪走摜在地上。', d:{timian:-1} } },
+  { name:'命運', type:'fate', story:'抽一張命運卡。' },
+  { name:'報錄捷報', type:'event', cats:['詞義','文意理解'], story:'「捷報貴府老爺范諱進，高中廣東鄉試第七名亞元。京報連登黃甲。」',
+    effect:(p,ok)=> p.rank>=2 ? { msg:'三匹馬闖將來，二報、三報接連到了，擠了一屋的人！', d:{timian:3}, tag:'brocade' } : { msg:'報錄人敲錯了門，原來是報給隔壁的。' + (ok?'你大方地請他喝茶。':''), d: ok?{renqing:1}:{} } },
+  { name:'喜極而瘋', type:'event', cats:['人物形象','主旨'], story:'「噫！好了！我中了！」說著，往後一跤跌倒，牙關咬緊，不省人事。',
+    effect:(p,ok)=>{
+      if (p.rank>=2) return ok ? { msg:'你穩住心神，沒有歡喜得發瘋。', d:{timian:2} } : { msg:'「噫！好了！我中了！」你拍著手往外飛跑，一腳踹進塘裡……休息一回合。', skip:1 };
+      return ok ? { msg:'看著別人歡喜發瘋，你暗自警惕：功名不是人生的全部。', d:{timian:1} } : { msg:'你也跟著鄰居看熱鬧，什麼都沒學到。' };
+    } },
+  { name:'眾人商議', type:'q', cats:['人物形象','文意理解'], story:'報錄人出主意：只消他怕的人來打他一個嘴巴，就明白了。',
+    effect:(p,ok)=> ok ? { msg:'你出了個好主意，眾人都說「妙得緊」。', d:{renqing:1, timian:1} } : { msg:'七嘴八舌，沒人聽你的。' } },
+  { name:'世態', type:'world', story:'抽一張世態卡。' },
+  { name:'屠戶巴掌', type:'butcher', cats:['人物形象','寫作手法'], story:'胡屠戶凶神一般走到跟前：「該死的畜生，你中了什麼！」一個嘴巴打將去。',
+    effect:(p,ok)=> p.rank>=2
+      ? { msg:'胡屠戶壯著膽子打了你一巴掌，你清醒了！他的手卻彎不過來，連忙討了個膏藥貼著。', d:{timian:2, renqing:1}, tag:'flatter' }
+      : butcherEffect(p,ok) },
+  { name:'文曲星君', type:'q', cats:['詞義','人物形象'], story:'「這些中老爺的，都是天上的文曲星。」文曲星是傳說中主掌文運的星宿。',
+    effect:(p,ok)=> ok ? { msg:'文曲星照耀，你文思泉湧。', d:{timian:1} } : { msg:'文曲星今天不在家。' } },
+  { name:'賢婿老爺', type:'butcher', cats:['人物形象','寫作手法'], story:'胡屠戶上前道：「賢婿老爺，方才不是我敢大膽，是你老太太的主意……」',
+    effect:(p,ok)=> huAtt(p) >= 80
+      ? { msg:'胡屠戶滿臉堆笑：「我小老這一雙眼睛卻是認得人的！」', d:{renqing:3}, tag:'flatter' }
+      : { msg:'胡屠戶斜眼看你：「像你這尖嘴猴腮，也該撒泡尿自己照照！」', d: ok?{}:{timian:-1}, tag:'scold' } },
+  { name:'命運', type:'fate', story:'抽一張命運卡。' },
+  { name:'扯襟回府', type:'q', cats:['寫作手法','人物形象'], story:'屠戶見女婿衣裳後襟滾皺了許多，一路低著頭替他扯了幾十回。',
+    effect:(p,ok)=> ok ? { msg:'你看出了作者的諷刺功力。', d:{timian: p.rank>=2 ? 2 : 1} } : { msg:'你只顧著看熱鬧。' } },
+  { name:'鄉紳來訪', type:'event', ext:true, cats:['主旨','作者與儒林外史'], story:'【延伸閱讀】原著第三回後文：鄉紳張靜齋聞訊登門拜訪，送銀送屋，大攀交情。（課文節選未收）',
+    effect:(p,ok)=> p.rank>=2 ? { msg:'張鄉紳登門賀喜，送銀又送房子，人人稱羨。', d:{renqing: ok?4:3}, tag:'brocade' }
+      : (p.rank===1 ? { msg:'張鄉紳的轎子經過你家門口，沒有停。', d: ok?{renqing:1}:{} } : { msg:'張府的門檻，你連邊也搆不著。' }) }
+];
+const N_TILES = TILES.length; // 24
+
+/* ---------- 命運卡（個人遭遇＋科舉知識）---------- */
+const FATE_CARDS = [
+  { title:'火候已到', text:'宗師說你「火候已到」。「自古無場外的舉人，如不進去考他一考，如何甘心？」', note:'意思是：不進考場，就不可能中舉。', run:p=>({ msg:'鼓起勇氣前進 2 格。', move:2 }) },
+  { title:'號舍九日', text:'鄉試連考三場、每場三天，吃喝拉撒睡都在窄小的號舍裡。你熬得頭昏眼花。', note:'號舍白天以兩塊木板當桌椅，晚上併成床，只能屈身而睡。', run:p=>({ msg:'體力透支，但同案彼此照應。', d:{timian:-1, renqing:1} }) },
+  { title:'白髮童生', text:'你在考場遇到一位白髮蒼蒼的老童生，他說這是第四十次應考。', note:'科舉不限年齡，清代禮遇老年考生，「百歲童生」時有所聞。', run:p=>({ msg:'被他的毅力感動，也開始思考考試的意義。', d:{timian:1} }) },
+  { title:'拜文昌帝君', text:'考前拜文昌帝君，供上「蔥」（聰明）、「包子、粽子」（包中）。', note:'文昌帝君是主掌文運的神，臺灣許多廟宇都有奉祀。', run:p=>({ msg:'心安多了！下一題可免費刪去一個錯誤選項。', freeHint:1 }) },
+  { title:'亞元的真相', text:'報錄人把「第七名」說成「亞元」，你被捧得飄飄然。', note:'亞元本指鄉試第二名，報錄人是有意討好，好多拿喜錢。', run:p=>({ msg:'虛名換來好心情，卻得打賞喜錢。', d:{timian:1, renqing:-1} }) },
+  { title:'歡喜瘋了', text:'你一時得意忘形，「自己把兩手拍了一下，笑了一聲道：『噫！好了！我中了！』」', note:'范進喜極而瘋，是全文的轉折，也是最諷刺的一幕。',
+    run:p=> p.rank>=1 ? { msg:'你拍著手往外飛跑……休息一回合。', skip:1 } : { msg:'還好你還沒中，暫時不必擔心發瘋。鄰居覺得你很穩重。', d:{renqing:1} } },
+  { title:'五更迎豬', text:'胡屠戶「從五更鼓就往東頭集上迎豬」。你一早跟著去碰碰運氣。', note:'五更約是凌晨三點到五點。', run:p=>({ msg:'直接前往「屠戶巴掌」。', goto:18 }) },
+  { title:'連中三元', text:'聽說有人解元、會元、狀元連中三元，你羨慕得一夜沒睡，決定再拚一把！', note:'解元＝鄉試第一、會元＝會試第一、狀元＝殿試第一。', run:p=>({ msg:'再擲一次骰子！', extra:true }) },
+  { title:'辭薦不就', text:'吳敬梓三十六歲時被巡撫推薦參加博學鴻詞科，卻推辭不就。你也學他看淡功名。', note:'吳敬梓從此無意仕進，把見聞寫成《儒林外史》。', run:p=>({ msg:'清高的名聲傳開了，但胡屠戶覺得你傻。', d:{timian:2, renqing:-1} }) },
+  { title:'賣雞救命', text:'「我已是餓得兩眼都看不見了！」家裡又沒米，母親叫你抱雞上集。', note:'中舉前後的貧富落差，是全文對比的基礎。', run:p=>({ msg:'前往「抱雞賣集」。', goto:12 }) },
+  { title:'京報連登黃甲', text:'報帖上寫著「京報連登黃甲」，祝你接連考中會試、殿試。', note:'黃甲：甲科進士的名冊以黃紙書寫，也稱「金榜」。', run:p=>({ msg:'吉祥話人人愛聽。', d:{renqing:2} }) },
+  { title:'落第還鄉', text:'放榜了，榜上沒有你的名字。鄰居在背後竊竊私語。', note:'范進應考二十餘次，屢試不第，才有後來的喜極而瘋。',
+    run:p=> p.rank>=2 ? { msg:'你早已是舉人，不必再為此煩惱。', d:{timian:1} } : { msg:'又是一年白費。', d:{timian:-2} } }
+];
+
+/* ---------- 世態卡（人情冷暖、前倨後恭）；choice 為抉擇卡 ---------- */
+const WORLD_CARDS = [
+  { title:'錦上添花', text:'「眾鄰居有拿雞蛋來的，有拿白酒來的，也有背了斗米來的，也有捉兩隻雞來的。」', note:'錦上添花：在好上再加好。對比的是「雪中送炭」。',
+    run:p=> p.rank>=2 ? { msg:'你中了舉，門前擠滿送禮的鄰居。', d:{renqing:3}, tag:'brocade' } : (p.rank===1 ? { msg:'秀才的面子不大，只有一兩人來。', d:{renqing:1} } : { msg:'你家門前冷冷清清，誰也沒來。' }) },
+  { title:'雪中送炭？', text:'有位同學（目前聲望最低的玩家）家中斷糧了。中舉之前，范進斷糧時沒有人理會。你要怎麼做？', note:'雪中送炭：在別人最需要時給予幫助。', choice:[
+      { label:'送一斗米過去（人情 −1、體面 +2；對方人情 +2）', run:(p,G,t)=>({ msg:'你雪中送炭，大家都記住了這份情。', d:{renqing:-1, timian:2}, target:t, td:{renqing:2}, tag:'snow' }) },
+      { label:'等他中舉再說吧', run:(p)=>({ msg:'你決定等他發達了再去「錦上添花」。', tag:'brocade' }) } ] },
+  { title:'一口啐在臉上', text:'你向丈人借盤纏，他「一口啐在臉上，罵了一個狗血噴頭」。', note:'「啐」是吐口水，表示輕視或憤怒。',
+    run:p=> huAtt(p) < 80 ? { msg:'被罵得摸門不著。', d:{timian:-2}, tag:'scold' } : { msg:'可如今你是老爺，丈人連忙奉上銀子。', d:{renqing:2}, tag:'flatter' } },
+  { title:'些須幾個錢', text:'胡屠戶再三不安道：「些須幾個錢，不夠你賞人。」', note:'前倨後恭：中舉前一文不借，中舉後主動送錢。',
+    run:p=> p.rank>=2 ? { msg:'丈人主動送來賞錢。', d:{renqing:3}, tag:'flatter' } : { msg:'丈人連一文錢也不肯給，你反倒要請他喝酒。', d:{renqing:-1} } },
+  { title:'半盆豬油', text:'鄰居調侃：「少頃范老爺洗臉，還要洗下半盆豬油來。」全場哈哈大笑。', note:'這是誇飾，取笑胡屠戶滿手油膩。', run:p=>({ msg:'笑聲中大家都放鬆了：所有玩家人情 +1。', all:{renqing:1} }) },
+  { title:'張府周府的老爺', text:'胡屠戶拿城裡張府、周府的老爺跟你比相貌。', note:'同一個人，中舉前是「尖嘴猴腮」，中舉後是「體面的相貌」。',
+    run:p=> p.rank>=2 ? { msg:'「張府、周府這些老爺，也沒有我女婿這樣一個體面的相貌！」', d:{timian:2}, tag:'flatter' } : { msg:'「人家都是方面大耳，像你這尖嘴猴腮……」', d:{timian:-1}, tag:'scold' } },
+  { title:'夾七夾八', text:'胡屠戶「一頓夾七夾八，罵得范進摸門不著」。', note:'夾七夾八：言語雜亂沒有條理；摸門不著：弄不清楚怎麼回事。', run:p=>({ msg:'挨了一頓罵，倒換來鄰居的同情。', d:{timian:-1, renqing:1}, tag:'scold' }) },
+  { title:'你奪我的雞怎的？', text:'鄰居來報喜，你卻以為被哄：「你曉得我今日沒有米，要賣這雞去救命，為什麼拿這話來混我？」', note:'長年失望，讓好消息也變得難以相信。', run:p=>({ msg:'你堅持把雞賣完才回家：後退 1 格。', move:-1 }) },
+  { title:'閻王的帳簿', text:'尖酸鄰居說：胡老爹殺豬「白刀子進去，紅刀子出來」，閻王簿上不差這一百棍。', note:'用胡屠戶的迷信開玩笑，增添喜劇效果。', run:p=>({ msg:'你講了個笑話，逗得大家開懷。', d:{renqing:2} }) },
+  { title:'扯了幾十回', text:'回家路上，胡屠戶見女婿後襟滾皺了，「一路低著頭替他扯了幾十回」。', note:'動作細節最能寫出人物的巴結嘴臉。',
+    run:p=> p.rank>=2 ? { msg:'丈人一路替你扯衣襟，你走得好不體面。', d:{timian:2}, tag:'flatter' } : { msg:'你看在眼裡，心裡五味雜陳。', d:{renqing:1} } },
+  { title:'老爺回府了！', text:'到了家門，胡屠戶高聲叫道：「老爺回府了！」', note:'稱呼的改變，就是地位的改變。', run:(p,G)=>({ msg:'所有舉人體面 +1；你沾點喜氣，人情 +1。', allRank2:{timian:1}, d:{renqing:1} }) },
+  { title:'跟風送禮？', text:'鄰居們都趕去巴結目前聲望最高的玩家。你要跟著去嗎？', note:'想一想：送禮是出於情誼，還是看對方的身分？', choice:[
+      { label:'跟著去送禮（人情 +2、體面 −1）', run:p=>({ msg:'禮送到了，可你心裡有點彆扭。', d:{renqing:2, timian:-1}, tag:'brocade' }) },
+      { label:'不隨波逐流（體面 +2）', run:p=>({ msg:'你守住了自己的分寸。', d:{timian:2} }) } ] }
+];
+
+
+/* =====================================================================
+   公平機制（追分系統）
+   - 落後：聲望比全體平均低 3 分以上
+   - 落後玩家：答對額外體面 +1；考場答錯可「補考」一次
+   - 胡屠戶奉承遞減：被捧越多次加成越少；領先者奉承加成最多 +1
+   ===================================================================== */
+function scoreOf(p){ return p.timian + p.renqing + RANKS[p.rank].bonus; }
+function avgScore(G){ return G.players.reduce((a, p) => a + scoreOf(p), 0) / G.players.length; }
+function lastPlace(G){ return G.players.slice().sort((a, b) => scoreOf(a) - scoreOf(b) || a.timian - b.timian)[0]; }
+function firstPlace(G){ return G.players.slice().sort((a, b) => scoreOf(b) - scoreOf(a) || b.timian - a.timian)[0]; }
+function belowAvg(G){ const m = avgScore(G); return G.players.filter(p => scoreOf(p) < m); }
+const CATCHUP = {
+  gap: 3,
+  isBehind(p, G){ return G.players.length > 1 && scoreOf(p) <= avgScore(G) - this.gap; },
+  isLeader(p, G){ const m = avgScore(G); return firstPlace(G) === p && scoreOf(p) >= m + this.gap; },
+  canRetry(p, G){ return this.isBehind(p, G); },
+  // 答對加成：在效果上再加體面 +1
+  withRightBonus(eff){
+    eff = Object.assign({}, eff || {}); eff.d = Object.assign({}, eff.d || {}); eff.d.timian = (eff.d.timian || 0) + 1;
+    eff.msg = (eff.msg ? eff.msg + '　' : '') + '🔥追分加成：體面 +1'; eff.bonus = true; return eff;
+  },
+  // 奉承遞減：人情加成 = 原值 − 已被奉承次數（最少 1）；領先者的人情、體面加成各最多 +1
+  flatterAdjust(p, G, d){
+    const nd = Object.assign({}, d);
+    if (nd.renqing > 0) nd.renqing = Math.max(1, nd.renqing - p.stats.flatter);
+    if (this.isLeader(p, G)){ if (nd.renqing > 1) nd.renqing = 1; if (nd.timian > 1) nd.timian = 1; }
+    return nd;
+  }
+};
+
+/* ---------- 追分卡：特別照顧落後玩家（命運 4 張、世態 5 張）---------- */
+FATE_CARDS.push(
+  { title:'鄰里接濟', catchup:true, text:'這一回，鄰居們不等誰中舉，趁人最困頓時就送來米糧。', note:'課文裡鄰居是在范進中舉後才送雞蛋、白酒、斗米，那是「錦上添花」；在人困頓時伸手，才是「雪中送炭」。',
+    run:(p, G) => { const last = lastPlace(G); return last === p ? { msg:'你正是最需要幫助的人：人情 +3、體面 +1。', d:{ renqing:3, timian:1 } }
+      : { msg:`米糧送到聲望最低的 ${last.name} 家（人情 +3）；你幫忙張羅，人情 +1。`, d:{ renqing:1 }, others:[{ p:last, d:{ renqing:3 } }] }; } },
+  { title:'名落孫山也可再考', catchup:true, text:'宋代孫山考中最後一名，回鄉說：「解名盡處是孫山，賢郎更在孫山外。」落榜不丟臉，再考就有機會。', note:'「名落孫山」比喻考試落榜。范進應考二十餘次才中秀才，正是屢敗屢戰。',
+    run:(p, G) => CATCHUP.isBehind(p, G) ? { msg:'你重整旗鼓：體面 +2，下一題可免費刪去一個錯誤選項。', d:{ timian:2 }, freeHint:1 } : { msg:'你把這句話送給落後的同學。人情 +1。', d:{ renqing:1 } } },
+  { title:'宗師憐才', catchup:true, text:'胡屠戶說：「還是宗師看見你老，不過意，捨與你的。」宗師也會憐惜苦讀多年的人。', note:'宗師是明清對科舉主考官的尊稱。原著寫周學道起初同情范進年老衣破，把他的文章反覆看了三遍，才讚為「天地間之至文」。',
+    run:(p, G) => (lastPlace(G) === p && p.rank === 0) ? { msg:'宗師破格錄取：你中了秀才！', rank:1, d:{ timian:1 } }
+      : CATCHUP.isBehind(p, G) ? { msg:'宗師對你另眼相看：體面 +2。', d:{ timian:2 } } : { msg:'宗師勉勵你幾句：體面 +1。', d:{ timian:1 } } },
+  { title:'大器晚成', catchup:true, text:'范進五十四歲才中秀才，同年又中了舉人。起步晚，不代表走不到。', note:'科舉不限年齡，大器晚成的人並不少見。',
+    run:(p, G) => { if (!CATCHUP.isBehind(p, G) || p.rank >= 2) return { msg:'你提醒自己：慢慢來也沒關係。體面 +1。', d:{ timian:1 } };
+      const ex = p.rank === 0 ? 2 : 9; return { msg:`你落後了，但機會還在：直接前往「${TILES[ex].name}」應考！`, goto:ex }; } }
+);
+WORLD_CARDS.push(
+  { title:'照應窮親戚', catchup:true, text:'鄰居提醒目前聲望最高的人：「發達了，也要照應還在苦讀的人。」', note:'對照胡屠戶：女婿窮時一文不借，中舉後才送錢。真正的情義不看身分。',
+    run:(p, G) => { const lead = firstPlace(G), last = lastPlace(G); if (lead === last) return { msg:'大家旗鼓相當：人人人情 +1。', all:{ renqing:1 } };
+      return { msg:`${lead.name} 拿出 2 點人情接濟 ${last.name}，換得體面 +1。`, others:[{ p:lead, d:{ renqing:-2, timian:1 } }, { p:last, d:{ renqing:2 } }] }; } },
+  { title:'苦盡甘來', catchup:true, text:'「老太太迎著出來，見兒子不瘋，喜從天降。」熬過苦日子的人，終會等到好消息。', note:'喜從天降：意外的喜事突然降臨。',
+    run:(p, G) => { const lst = belowAvg(G); return lst.length ? { msg:`聲望低於平均的玩家（${lst.map(x => x.name).join('、')}）體面 +2。`, others:lst.map(x => ({ p:x, d:{ timian:2 } })) } : { msg:'大家分數接近：人人體面 +1。', all:{ timian:1 } }; } },
+  { title:'樹大招風', catchup:true, text:'鄰居在背後議論聲望最高的人：「別看他現在風光，從前還不是被丈人罵『現世寶』？」', note:'世態炎涼：人情隨地位冷熱變化，捧得越高，閒話也越多。',
+    run:(p, G) => { const lead = firstPlace(G), last = lastPlace(G); if (lead === last) return { msg:'目前沒人特別出風頭。人情 +1。', d:{ renqing:1 } };
+      return { msg:`${lead.name} 體面 −2；${last.name} 得到同情，人情 +2。`, others:[{ p:lead, d:{ timian:-2 } }, { p:last, d:{ renqing:2 } }] }; } },
+  { title:'同案相助', catchup:true, text:'魏好古約了同案的朋友一起溫書，特別邀請落後的同學。', note:'同案：同一年考中秀才的人。文會取「以文會友」之意。',
+    run:(p, G) => { const last = lastPlace(G); return last === p ? { msg:'同案們一起幫你溫書：體面 +2、人情 +1。', d:{ timian:2, renqing:1 } }
+      : { msg:`你和 ${last.name} 一起溫書：兩人體面各 +1。`, d:{ timian:1 }, others:[{ p:last, d:{ timian:1 } }] }; } },
+  { title:'借盤纏給同案', catchup:true, text:'聲望最低的同學沒有盤費去鄉試，來找你商量。你要像胡屠戶那樣「一口啐在臉上」嗎？', note:'胡屠戶拒借盤纏時說「叫我一家老小嗑西北風」，與他後來的奉承形成強烈對比。', choice:[
+      { label:'借他盤纏（你人情 −1、體面 +1；對方體面 +2、人情 +1）', run:(p, G, t) => ({ msg:'你雪中送炭，他感激不盡。', d:{ renqing:-1, timian:1 }, target:t, td:{ timian:2, renqing:1 }, tag:'snow' }) },
+      { label:'學胡屠戶罵他一頓', run:p => ({ msg:'旁人都搖頭：你成了另一個胡屠戶。體面 −1。', d:{ timian:-1 } }) } ] }
+);
+
+/* ---------- 結算時的課後省思題 ---------- */
+const REFLECTIONS = [
+  '胡屠戶對你的稱呼從「現世寶」變成「賢婿老爺」。改變的是你，還是他看人的標準？',
+  '范進五十四歲才考中秀才。換作是你，會怎麼面對一次又一次的落榜？',
+  '斷糧時沒人理，中舉後人人送禮。生活中你看過類似的「錦上添花」嗎？你願意當「雪中送炭」的人嗎？',
+  '范進中舉卻歡喜得發瘋。你覺得考試在你的生活中，應該占多大的分量？',
+  '作者沒有一句直接罵科舉，卻讓人又想笑又心酸。找一句你覺得最諷刺的對白，說說理由。',
+  '如果你是報錄人或鄰居，你會怎麼對待剛中舉、又剛發瘋的范進？'
+];
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   二、共用工具、儲存、音訊
+   ===================================================================== */
+const $ = (s, root=document) => root.querySelector(s);
+const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+// 依使用者習慣：顯示／隱藏一律用 style.display
+const show = (el, d='block') => { el = typeof el==='string' ? $(el) : el; if (el) el.style.display = d; };
+const hide = (el) => { el = typeof el==='string' ? $(el) : el; if (el) el.style.display = 'none'; };
+const QS = new URLSearchParams(location.search);
+const FAST = QS.has('fast');                 // 測試用：?fast=1 加速動畫
+const SPEED = FAST ? 0.12 : 1;
+const sleep = ms => new Promise(r => setTimeout(r, ms * SPEED));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rand = n => Math.floor(Math.random() * n);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=rand(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const LETTERS = ['A','B','C','D'];
+const PCOLORS = [ {c:'#b23a2a', n:'朱'}, {c:'#2f4858', n:'黛'}, {c:'#3d6b4f', n:'松'}, {c:'#a87b2c', n:'金'} ];
+
+/* ---------- localStorage ---------- */
+const STORE = {
+  get(k, def){ try { const v = localStorage.getItem('fanjin.'+k); return v ? JSON.parse(v) : def; } catch(e){ return def; } },
+  set(k, v){ try { localStorage.setItem('fanjin.'+k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem('fanjin.'+k); } catch(e){} }
+};
+
+/* ---------- 題庫（可由教師模式修改，存在 localStorage）---------- */
+function validQuestion(q){
+  return q && typeof q.q === 'string' && q.q.trim() && Array.isArray(q.o) && q.o.length >= 2 && q.o.length <= 4
+    && q.o.every(x => typeof x === 'string' && x.trim()) && Number.isInteger(q.a) && q.a >= 0 && q.a < q.o.length;
+}
+function normQuestion(q){
+  return { cat: String(q.cat || '其他').trim(), q: String(q.q).trim(), o: q.o.map(x => String(x).trim()), a: q.a, e: String(q.e || '').trim() };
+}
+let QBANK = (STORE.get('qbank', null) || DEFAULT_QUESTIONS).filter(validQuestion).map(normQuestion);
+if (!QBANK.length) QBANK = DEFAULT_QUESTIONS.map(normQuestion);
+function saveBank(){ STORE.set('qbank', QBANK); }
+
+/* ---------- 提示訊息 ---------- */
+let toastTimer = 0;
+function toast(msg, ms=2600){
+  const t = $('#toast'); t.textContent = msg; show(t);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => hide(t), ms);
+}
+function floater(text, el, color){
+  const r = (el || document.body).getBoundingClientRect();
+  const f = document.createElement('div'); f.className = 'floater'; f.textContent = text; f.style.color = color;
+  f.style.left = (r.left + r.width/2 - 30 + rand(30)) + 'px'; f.style.top = (r.top + 6) + 'px';
+  document.body.appendChild(f); setTimeout(() => f.remove(), 1500);
+}
+
+/* =====================================================================
+   音訊：背景音樂用 <audio> 播 bgm.mp3；音效用 Web Audio 輕量合成
+   音效原則：短、輕、柔，以撥弦（Karplus–Strong 古箏感）與木魚聲為主
+   ===================================================================== */
+const SND = {
+  ctx:null, master:null, unlocked:false, bgmMissing:false, cache:{},
+  cfg: Object.assign({ bgmOn:true, sfxOn:true, bgmVol:0.35, sfxVol:0.55 }, STORE.get('audio', {})),
+  save(){ STORE.set('audio', this.cfg); },
+  el(){ return $('#bgm'); },
+  init(){
+    const a = this.el(); a.volume = this.cfg.bgmVol;
+    a.addEventListener('error', () => { this.bgmMissing = true; refreshAudioUI(); });
+    // 瀏覽器規定：需使用者互動後才能播放聲音
+    const unlock = () => { this.unlock(); };
+    window.addEventListener('pointerdown', unlock, { once:false, passive:true });
+    window.addEventListener('keydown', unlock, { once:false });
+  },
+  unlock(){
+    if (!this.ctx){
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = this.cfg.sfxVol;
+        const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; // 柔化高頻
+        this.master.connect(lp); lp.connect(this.ctx.destination);
+      } catch(e){ this.ctx = null; }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    if (!this.unlocked){ this.unlocked = true; this.syncBgm(); }
+  },
+  syncBgm(){
+    const a = this.el(); a.volume = this.cfg.bgmVol;
+    if (this.cfg.bgmOn && this.unlocked && !this.bgmMissing){
+      if (a.preload === 'none') { a.preload = 'auto'; }
+      a.play().catch(() => {});
+    } else a.pause();
+  },
+  setSfxVol(v){ this.cfg.sfxVol = v; if (this.master) this.master.gain.value = v; this.save(); },
+  setBgmVol(v){ this.cfg.bgmVol = v; this.el().volume = v; this.save(); },
+  // 產生撥弦音的音訊緩衝（快取）
+  pluckBuf(freq, dur=1.4){
+    const key = freq.toFixed(1)+'_'+dur; if (this.cache[key]) return this.cache[key];
+    const sr = this.ctx.sampleRate, len = Math.floor(sr*dur), buf = this.ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    const N = Math.max(2, Math.round(sr / freq)); const ring = new Float32Array(N);
+    let prev = 0; for (let i=0;i<N;i++){ const w = Math.random()*2-1; prev = prev*0.55 + w*0.45; ring[i] = prev; } // 柔和的激發
+    let idx = 0;
+    for (let i=0;i<len;i++){
+      const nxt = (idx+1) % N; const v = ring[idx];
+      ring[idx] = 0.4985 * (v + ring[nxt]); d[i] = v; idx = nxt;
+    }
+    // 起音淡入 2ms，避免爆音
+    for (let i=0;i<Math.min(len, sr*0.002);i++) d[i] *= i/(sr*0.002);
+    return (this.cache[key] = buf);
+  },
+  pluck(freq, when=0, vol=0.5, dur=1.3){
+    const c = this.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = this.pluckBuf(freq, dur);
+    const t = c.currentTime + when; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    src.connect(g); g.connect(this.master); src.start(t); src.stop(t + dur + 0.05);
+  },
+  tock(freq=880, when=0, vol=0.25, decay=0.07){ // 木魚／木塊聲
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = 'sine';
+    const t = c.currentTime + when; o.frequency.setValueAtTime(freq*1.25, t); o.frequency.exponentialRampToValueAtTime(freq, t+0.02);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t+0.004); g.gain.exponentialRampToValueAtTime(0.0001, t+decay);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+decay+0.02);
+  },
+  bell(freq, when=0, vol=0.12, dur=0.5){ // 小磬聲：兩個柔和泛音
+    const c = this.ctx, t = c.currentTime + when;
+    [[1,1],[2.76,0.35]].forEach(([m, a]) => {
+      const o = c.createOscillator(), g = c.createGain(); o.type='sine'; o.frequency.value = freq*m;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol*a, t+0.006); g.gain.exponentialRampToValueAtTime(0.0001, t+dur*(m>1?0.5:1));
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.05);
+    });
+  },
+  play(name){
+    if (!this.cfg.sfxOn || !this.ctx || this.ctx.state !== 'running') return;
+    try {
+      // 五聲音階（D 宮）：D E F# A B
+      const P = { D4:293.66, E4:329.63, Fs4:369.99, A4:440, B4:493.88, D5:587.33, E5:659.25, Fs5:739.99, A5:880, B5:987.77, D6:1174.66, A3:220, B3:246.94 };
+      switch(name){
+        case 'dice': for (let i=0;i<5;i++) this.tock(700 + rand(500), i*0.07 + Math.random()*0.03, 0.12 + Math.random()*0.06, 0.05); break;
+        case 'land': this.tock(520, 0, 0.18, 0.12); break;
+        case 'step': this.tock(980, 0, 0.07, 0.04); break;
+        case 'right': this.pluck(P.D5, 0, 0.35); this.pluck(P.A5, 0.11, 0.3); break;
+        case 'wrong': this.pluck(P.E4, 0, 0.32, 1.0); this.pluck(P.B3, 0.16, 0.3, 1.2); break;
+        case 'coin': this.bell(1568, 0, 0.10, 0.35); this.bell(2093, 0.07, 0.08, 0.4); break;
+        case 'down': this.tock(300, 0, 0.16, 0.18); break;
+        case 'card': this.pluck(P.A4, 0, 0.22, 0.9); break;
+        case 'rank': [P.D5,P.E5,P.Fs5,P.A5,P.B5,P.D6].forEach((f,i)=> this.pluck(f, i*0.09, 0.28, 1.6)); break;
+        case 'turn': this.bell(1174.66, 0, 0.06, 0.4); break;
+        case 'end': [P.D4,P.Fs4,P.A4,P.D5,P.A4,P.D5].forEach((f,i)=> this.pluck(f, i*0.16, 0.3, 1.8)); break;
+      }
+    } catch(e){}
+  }
+};
+function refreshAudioUI(){
+  const b = $('#btnBgm'), s = $('#btnSfx');
+  if (b){ b.classList.toggle('on', SND.cfg.bgmOn); b.textContent = SND.cfg.bgmOn ? '♪' : '♪̸'; b.title = SND.cfg.bgmOn ? '背景音樂：開' : '背景音樂：關'; }
+  if (s){ s.classList.toggle('on', SND.cfg.sfxOn); s.textContent = SND.cfg.sfxOn ? '🔔' : '🔕'; }
+  const st = $('#bgmStatus'); if (st) st.textContent = SND.bgmMissing ? '找不到 bgm.mp3（遊戲仍可正常進行）' : '音檔：bgm.mp3';
+}
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   三、棋盤座標（3D／2D 共用）
+   7×7 外圈 24 格：0 號在右下角，沿底邊往左、左邊往上、頂邊往右、右邊往下（順時針）
+   ===================================================================== */
+function tileRC(i){
+  if (i <= 6)  return { r:6, c:6-i };
+  if (i <= 12) return { r:6-(i-6), c:0 };
+  if (i <= 18) return { r:0, c:i-12 };
+  return { r:i-18, c:6 };
+}
+const isCorner = i => i % 6 === 0;
+// 每位玩家在格子內的固定位置（避免重疊）
+const SLOT = [[-0.22,-0.2],[0.22,-0.2],[-0.22,0.24],[0.22,0.24]];
+const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+function shortName(t){ return t.name; }
+
+/* =====================================================================
+   四、2D 畫面（DOM／CSS）：省電、相容性最好
+   ===================================================================== */
+const R2D = {
+  name:'2d',
+  async init(host, G, opts={}){
+    this.host = host; this.G = G; this.opts = opts;
+    const b = document.createElement('div'); b.className = 'b2d'; this.board = b;
+    // 格子
+    this.tileEls = TILES.map((t, i) => {
+      const el = document.createElement('div'); const rc = tileRC(i); const st = TYPE_STYLE[t.type];
+      el.className = 't2d' + (isCorner(i) ? ' corner' : ''); el.style.gridRow = (rc.r+1); el.style.gridColumn = (rc.c+1);
+      el.style.setProperty('--tc', st.color); el.dataset.idx = i;
+      el.innerHTML = `<div class="tb">${st.badge}${t.ext?'·延伸':''}</div><div class="tn">${esc(shortName(t))}</div><div class="ti">${i}</div>`;
+      el.addEventListener('click', () => opts.onTileClick && opts.onTileClick(i));
+      b.appendChild(el); return el;
+    });
+    // 中央：標題、骰子、訊息
+    const c = document.createElement('div'); c.className = 'c2d';
+    c.innerHTML = `<svg class="mtn" viewBox="0 0 1200 400" preserveAspectRatio="none"><use href="#mtns"/></svg>
+      <div class="sub kai">〈范進中舉〉</div><h2>范進<span style="color:var(--zhu)">命運</span>棋</h2>
+      <div class="dice-scene"><div class="dice-cube" id="dCube">${[1,2,3,4,5,6].map(v=>`<div class="dface" data-f="${v}">${this.pipHTML(v)}</div>`).join('')}</div></div>
+      <div class="msg" id="msg2d">擲骰子，開始你的科舉人生。</div>`;
+    b.appendChild(c);
+    // 棋子
+    this.toks = G.players.map((p, i) => {
+      const t = document.createElement('div'); t.className = 'tok2d'; t.style.background = p.color; t.textContent = p.tok; b.appendChild(t); return t;
+    });
+    host.appendChild(b);
+    this.cube = $('#dCube', b); this.spin = 0;
+    this.layoutFaces();
+    this.resize(); this.sync(G);
+  },
+  pipHTML(v){
+    return Array.from({length:9}, (_, k) => PIPS[v].includes(k)
+      ? `<div class="pip ${(v===1||v===4)?'red':''} ${v===1?'big':''}"></div>` : '<div></div>').join('');
+  },
+  layoutFaces(){
+    // 傳統骰子：1、4 點為紅色；相對面點數和為 7
+    const T = { 1:'rotateY(0deg)', 6:'rotateY(180deg)', 2:'rotateY(90deg)', 5:'rotateY(-90deg)', 3:'rotateX(90deg)', 4:'rotateX(-90deg)' };
+    this.faceT = T; this.applyFaceZ();
+  },
+  applyFaceZ(){
+    if (!this.cube) return; const h = this.cube.offsetWidth / 2;
+    $$('.dface', this.cube).forEach(f => { f.style.transform = `${this.faceT[f.dataset.f]} translateZ(${h}px)`; });
+  },
+  resize(){
+    if (!this.host) return;
+    const w = this.host.clientWidth, h = this.host.clientHeight; const s = Math.max(200, Math.min(w, h) - 16);
+    this.board.style.width = s + 'px'; this.board.style.height = s + 'px'; this.board.style.setProperty('--u', (s/7) + 'px');
+    this.u = s / 7; this.applyFaceZ(); this.placeAll(false);
+  },
+  tileXY(i, pi){
+    const el = this.tileEls[i]; const sl = SLOT[pi];
+    return { x: el.offsetLeft + el.offsetWidth*(0.5 + sl[0]), y: el.offsetTop + el.offsetHeight*(0.56 + sl[1]*0.9) };
+  },
+  placeAll(anim){
+    if (!this.G) return;
+    this.G.players.forEach((p, i) => { const t = this.toks[i]; if (!t) return; if (!anim) t.style.transition = 'none';
+      const xy = this.tileXY(p.pos, i); t.style.left = xy.x + 'px'; t.style.top = xy.y + 'px';
+      if (!anim) { void t.offsetWidth; t.style.transition = ''; } });
+  },
+  sync(G){
+    this.G = G; this.placeAll(false);
+    this.toks.forEach((t, i) => t.classList.toggle('cur', i === G.cur));
+  },
+  async moveStep(pi, pos){
+    const t = this.toks[pi]; const xy = this.tileXY(pos, pi);
+    t.classList.remove('hop'); void t.offsetWidth; t.classList.add('hop');
+    t.style.left = xy.x + 'px'; t.style.top = xy.y + 'px';
+    await sleep(250);
+  },
+  async rollDice(v){
+    const show = { 1:[0,0], 6:[0,180], 2:[0,-90], 5:[0,90], 3:[-90,0], 4:[90,0] }[v];
+    this.spin += 2; const bx = this.spin*360 + show[0], by = this.spin*360 + 180 + show[1] + 180; // 多轉幾圈再停
+    this.cube.style.transitionDuration = (1.0*SPEED) + 's';
+    this.cube.style.transform = `rotateX(${bx}deg) rotateY(${by}deg)`;
+    await sleep(1050);
+  },
+  focusTile(i){ const el = this.tileEls[i]; el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); },
+  setMessage(txt){ const m = $('#msg2d', this.board); if (m) m.textContent = txt; },
+  destroy(){ if (this.host) this.host.innerHTML = ''; this.board = null; this.host = null; this.toks = []; }
+};
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   五、3D 畫面（three.js，CDN 動態載入）
+   失敗情境：無 WebGL、建立 context 失敗、CDN 載不到、FPS 太低 → 由外層改用 2D
+   ===================================================================== */
+const THREE_URLS = [
+  'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js',
+  'https://unpkg.com/three@0.170.0/build/three.module.min.js'
+];
+let THREE_MOD = null;
+async function loadThree(){
+  if (THREE_MOD) return THREE_MOD;
+  let lastErr;
+  for (const u of THREE_URLS){
+    try {
+      THREE_MOD = await Promise.race([ import(u), new Promise((_, rej) => setTimeout(() => rej(new Error('three.js 載入逾時')), 9000)) ]);
+      return THREE_MOD;
+    } catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('three.js 載入失敗');
+}
+function webglAvailable(){
+  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch(e){ return false; }
+}
+async function fontsReady(){
+  // 讓畫布文字使用霞鶩文楷：先載入需要的字形（Google Fonts 依字元切片）
+  const text = TILES.map(t=>t.name).join('') + '范進命運棋中舉儒林外史起問考屠命世事延伸噫好了我';
+  try { await Promise.race([ document.fonts.load('700 64px "LXGW WenKai TC"', text), sleep(2500/SPEED) ]); } catch(e){}
+}
+
+const R3D = {
+  name:'3d',
+  async init(host, G, opts={}){
+    if (!webglAvailable()) throw new Error('此裝置不支援 WebGL');
+    const T = await loadThree(); this.T = T; this.host = host; this.G = G; this.opts = opts;
+    await fontsReady();
+    let r;
+    try {
+      r = new T.WebGLRenderer({ antialias:true, alpha:true, powerPreference:'high-performance', failIfMajorPerformanceCaveat: !!opts.strict });
+    } catch(e){ throw new Error('WebGL 初始化失敗'); }
+    this.renderer = r;
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
+    r.domElement.style.cssText = 'width:100%;height:100%;display:block;touch-action:none';
+    host.appendChild(r.domElement);
+    r.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (!this.destroyed && this.opts.onLost) this.opts.onLost(); });
+
+    const scene = this.scene = new T.Scene();
+    this.camera = new T.PerspectiveCamera(38, 1, 0.1, 200);
+    scene.add(new T.HemisphereLight(0xfff6e4, 0x6b5a45, 1.6));
+    const dl = new T.DirectionalLight(0xfff1d6, 2.2); dl.position.set(-5, 11, 7); dl.castShadow = true;
+    dl.shadow.mapSize.set(1024, 1024); Object.assign(dl.shadow.camera, { left:-6, right:6, top:6, bottom:-6, near:1, far:30 }); dl.shadow.bias = -0.0008;
+    scene.add(dl);
+
+    this.tweens = []; this.az = 0; this.pol = 0.82; this.zoom = 1;
+    this.paper = this.makePaperCanvas(512);
+    this.buildBoard(); this.buildTokens(G); this.buildDie();
+    this.bindControls();
+    this.resize(); this.sync(G);
+    this.running = true; this.frames = 0; this.t0 = performance.now();
+    const loop = (now) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); this.frame(now); };
+    this.raf = requestAnimationFrame(loop);
+  },
+
+  /* ---------- 畫布貼圖 ---------- */
+  makePaperCanvas(size){
+    const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+    g.fillStyle = '#f2e7cf'; g.fillRect(0,0,size,size);
+    for (let i=0;i<size*3;i++){ g.fillStyle = `rgba(${120+rand(60)},${90+rand(40)},${50+rand(30)},${Math.random()*0.06})`; g.fillRect(rand(size), rand(size), 1+rand(2), 1+rand(2)); }
+    g.strokeStyle = 'rgba(140,110,70,.08)'; g.lineWidth = 1;
+    for (let i=0;i<60;i++){ g.beginPath(); const x=rand(size), y=rand(size); g.moveTo(x,y); g.quadraticCurveTo(x+rand(40)-20, y+rand(40)-20, x+rand(80)-40, y+rand(80)-40); g.stroke(); } // 纖維
+    return c;
+  },
+  tex(canvas){ const t = new this.T.CanvasTexture(canvas); t.colorSpace = this.T.SRGBColorSpace; t.anisotropy = 4; return t; },
+  tileCanvas(i){
+    const t = TILES[i], st = TYPE_STYLE[t.type], S = 256, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    g.drawImage(this.paper, 0, 0, S, S);
+    g.fillStyle = st.color; g.globalAlpha = 0.1; g.fillRect(0,0,S,S); g.globalAlpha = 1;
+    g.strokeStyle = st.color; g.lineWidth = 10; g.strokeRect(9,9,S-18,S-18); g.lineWidth = 2; g.strokeRect(24,24,S-48,S-48);
+    // 左上角印章
+    g.fillStyle = st.color; g.fillRect(30, 30, 58, 58); g.fillStyle = '#fff4e2'; g.font = '700 42px "LXGW WenKai TC", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(st.badge, 59, 61);
+    // 格名
+    const name = t.name; g.fillStyle = '#231b15';
+    const fs = name.length <= 2 ? 92 : name.length === 3 ? 70 : 56;
+    g.font = `700 ${fs}px "LXGW WenKai TC", serif`;
+    if (name.length === 4){ g.fillText(name.slice(0,2), S/2+14, S/2+4); g.fillText(name.slice(2), S/2+14, S/2+66); }
+    else g.fillText(name, S/2+(name.length<=2?14:10), S/2+30);
+    if (t.ext){ g.font = '28px "LXGW WenKai TC", serif'; g.fillStyle = st.color; g.fillText('延伸', S-56, 52); }
+    g.font = '22px serif'; g.fillStyle = 'rgba(0,0,0,.35)'; g.fillText(String(i), S-40, S-38);
+    return c;
+  },
+  centerCanvas(){
+    const S = 1024, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    g.drawImage(this.paper, 0, 0, S, S);
+    // 水墨遠山
+    const mtn = (base, amp, col, a) => { g.fillStyle = col; g.globalAlpha = a; g.beginPath(); g.moveTo(0, S);
+      for (let x=0; x<=S; x+=16){ const y = base - Math.sin(x/130)*amp - Math.sin(x/53+1)*amp*0.35 - Math.cos(x/300)*amp*0.6; g.lineTo(x, y); }
+      g.lineTo(S, S); g.closePath(); g.fill(); g.globalAlpha = 1; };
+    mtn(780, 70, '#3a332c', 0.16); mtn(850, 50, '#1f1a17', 0.22); mtn(910, 30, '#1f1a17', 0.3);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#5b4a3a'; g.font = '44px "LXGW WenKai TC", serif'; g.fillText('〈 范 進 中 舉 〉', S/2, 250);
+    g.fillStyle = '#1f1a17'; g.font = '700 150px "LXGW WenKai TC", serif'; g.fillText('范進', S/2-150, 400);
+    g.fillStyle = '#b23a2a'; g.fillText('命運', S/2+150, 400); g.fillStyle = '#1f1a17'; g.font = '700 110px "LXGW WenKai TC", serif'; g.fillText('棋', S/2, 545);
+    // 印章
+    g.fillStyle = '#b23a2a'; g.fillRect(S/2+170, 500, 96, 96); g.fillStyle = '#fbeedd'; g.font = '700 40px "LXGW WenKai TC", serif'; g.fillText('儒林', S/2+218, 548);
+    g.fillStyle = 'rgba(31,26,23,.55)'; g.font = '34px "LXGW WenKai TC", serif'; g.fillText('噫！好了！我中了！', S/2, 650);
+    return c;
+  },
+  tokenCanvas(p){
+    const S = 128, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    g.fillStyle = p.color; g.fillRect(0,0,S,S);
+    g.strokeStyle = '#fff1d8'; g.lineWidth = 6; g.beginPath(); g.arc(S/2,S/2,S/2-12,0,Math.PI*2); g.stroke();
+    g.fillStyle = '#fff8ea'; g.font = '700 66px "LXGW WenKai TC", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(p.tok, S/2, S/2+4);
+    return c;
+  },
+  dieCanvas(v){
+    const S = 128, c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    g.fillStyle = '#fbf5e8'; g.fillRect(0,0,S,S); g.strokeStyle = '#d8c9a8'; g.lineWidth = 6; g.strokeRect(3,3,S-6,S-6);
+    const red = (v===1 || v===4);
+    PIPS[v].forEach(k => { const x = 24 + (k%3)*40, y = 24 + Math.floor(k/3)*40; g.beginPath(); g.arc(x, y, v===1 ? 22 : 11, 0, Math.PI*2); g.fillStyle = red ? '#b23a2a' : '#1f1a17'; g.fill(); });
+    return c;
+  },
+
+  /* ---------- 建立場景 ---------- */
+  pos(i){ const rc = tileRC(i); return { x:(rc.c-3)*1.06, z:(rc.r-3)*1.06 }; },
+  buildBoard(){
+    const T = this.T, sc = this.scene;
+    const wood = new T.MeshStandardMaterial({ color:0x5a3b22, roughness:0.75 });
+    const paperTop = new T.MeshStandardMaterial({ map:this.tex(this.paper), roughness:0.95 });
+    const base = new T.Mesh(new T.BoxGeometry(7.95, 0.35, 7.95), [wood, wood, paperTop, wood, wood, wood]);
+    base.position.y = -0.175; base.receiveShadow = true; sc.add(base);
+    const frame = new T.Mesh(new T.BoxGeometry(8.35, 0.25, 8.35), new T.MeshStandardMaterial({ color:0x3b2616, roughness:0.6 }));
+    frame.position.y = -0.33; sc.add(frame);
+    const center = new T.Mesh(new T.PlaneGeometry(5.1, 5.1), new T.MeshStandardMaterial({ map:this.tex(this.centerCanvas()), roughness:1 }));
+    center.rotation.x = -Math.PI/2; center.position.y = 0.006; center.receiveShadow = true; sc.add(center);
+    this.tiles = TILES.map((t, i) => {
+      const col = new T.Color(TYPE_STYLE[t.type].color);
+      const side = new T.MeshStandardMaterial({ color: col, roughness:0.7 });
+      const top = new T.MeshStandardMaterial({ map:this.tex(this.tileCanvas(i)), roughness:0.9, emissive:0xd9a441, emissiveIntensity:0 });
+      const m = new T.Mesh(new T.BoxGeometry(0.98, 0.16, 0.98), [side, side, top, side, side, side]);
+      const p = this.pos(i); m.position.set(p.x, 0.08, p.z); m.castShadow = true; m.receiveShadow = true; m.userData.idx = i; m.userData.top = top;
+      sc.add(m); return m;
+    });
+  },
+  buildTokens(G){
+    const T = this.T;
+    this.toks = G.players.map((p, i) => {
+      const side = new T.MeshStandardMaterial({ color:new T.Color(p.color), roughness:0.45, metalness:0.05 });
+      const top = new T.MeshStandardMaterial({ map:this.tex(this.tokenCanvas(p)), roughness:0.5 });
+      const m = new T.Mesh(new T.CylinderGeometry(0.175, 0.19, 0.15, 32), [side, top, side]);
+      m.castShadow = true; this.scene.add(m); return m;
+    });
+    const ring = new T.Mesh(new T.TorusGeometry(0.25, 0.03, 10, 40), new T.MeshStandardMaterial({ color:0xd9a441, emissive:0xb8893b, emissiveIntensity:0.6 }));
+    ring.rotation.x = -Math.PI/2; this.ring = ring; this.scene.add(ring);
+  },
+  buildDie(){
+    const T = this.T;
+    // BoxGeometry 材質順序：+X, -X, +Y, -Y, +Z, -Z
+    const faces = [3, 4, 1, 6, 2, 5].map(v => new T.MeshStandardMaterial({ map:this.tex(this.dieCanvas(v)), roughness:0.4 }));
+    const d = new T.Mesh(new T.BoxGeometry(0.62, 0.62, 0.62), faces); d.castShadow = true; d.position.set(0, 0.31, 1.75); this.die = d; this.scene.add(d);
+    this.faceQ = (v) => { const q = new T.Quaternion(), E = new T.Euler();
+      const r = { 1:[0,0,0], 6:[Math.PI,0,0], 2:[-Math.PI/2,0,0], 5:[Math.PI/2,0,0], 3:[0,0,Math.PI/2], 4:[0,0,-Math.PI/2] }[v];
+      E.set(r[0], r[1], r[2]); q.setFromEuler(E); return q; };
+  },
+
+  /* ---------- 攝影機與觸控 ---------- */
+  bindControls(){
+    const el = this.renderer.domElement, pts = new Map(); let downXY = null, lastDist = 0, moved = false;
+    el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); pts.set(e.pointerId, {x:e.clientX, y:e.clientY}); downXY = {x:e.clientX, y:e.clientY}; moved = false;
+      if (pts.size === 2){ const [a,b] = [...pts.values()]; lastDist = Math.hypot(a.x-b.x, a.y-b.y); } });
+    el.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return; const prev = pts.get(e.pointerId); const cur = {x:e.clientX, y:e.clientY}; pts.set(e.pointerId, cur);
+      if (downXY && Math.hypot(cur.x-downXY.x, cur.y-downXY.y) > 6) moved = true;
+      if (pts.size === 1){ this.az -= (cur.x-prev.x) * 0.006; this.pol = Math.min(1.25, Math.max(0.35, this.pol - (cur.y-prev.y)*0.004)); this.updateCamera(); }
+      else if (pts.size === 2){ const [a,b] = [...pts.values()]; const d = Math.hypot(a.x-b.x, a.y-b.y); if (lastDist) this.zoom = Math.min(1.6, Math.max(0.6, this.zoom * lastDist / d)); lastDist = d; this.updateCamera(); }
+    });
+    const up = e => { if (pts.size === 1 && !moved && downXY) this.pick(e); pts.delete(e.pointerId); if (pts.size < 2) lastDist = 0; };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', e => pts.delete(e.pointerId));
+    el.addEventListener('wheel', e => { e.preventDefault(); this.zoom = Math.min(1.6, Math.max(0.6, this.zoom * (e.deltaY > 0 ? 1.08 : 0.93))); this.updateCamera(); }, { passive:false });
+    el.addEventListener('dblclick', () => { this.az = 0; this.pol = 0.82; this.zoom = 1; this.updateCamera(); });
+  },
+  pick(e){
+    const T = this.T, rect = this.renderer.domElement.getBoundingClientRect();
+    const v = new T.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+    const rc = new T.Raycaster(); rc.setFromCamera(v, this.camera); const hit = rc.intersectObjects(this.tiles)[0];
+    if (hit && this.opts.onTileClick) this.opts.onTileClick(hit.object.userData.idx);
+  },
+  updateCamera(){
+    const aspect = this.aspect || 1; const fit = aspect >= 1.35 ? 1 : Math.pow(1.35/aspect, 0.9);
+    const R = 11.6 * fit * this.zoom;
+    const c = this.camera; c.position.set(Math.sin(this.az)*Math.sin(this.pol)*R, Math.cos(this.pol)*R, Math.cos(this.az)*Math.sin(this.pol)*R);
+    c.lookAt(0, -0.35, 0.25);
+  },
+  resize(){
+    if (!this.renderer || !this.host) return; const w = Math.max(50, this.host.clientWidth), h = Math.max(50, this.host.clientHeight);
+    this.renderer.setSize(w, h, false); this.aspect = w / h; this.camera.aspect = this.aspect; this.camera.updateProjectionMatrix(); this.updateCamera();
+  },
+
+  /* ---------- 動畫 ---------- */
+  tween(ms, fn){ return new Promise(res => this.tweens.push({ t0:performance.now(), ms: Math.max(16, ms*SPEED), fn, res })); },
+  frame(now){
+    this.frames++;
+    for (let i=this.tweens.length-1; i>=0; i--){ const tw = this.tweens[i]; const k = Math.min(1, (now - tw.t0)/tw.ms); tw.fn(k); if (k >= 1){ this.tweens.splice(i,1); tw.res(); } }
+    // 目前玩家棋子輕輕浮動、光環旋轉
+    const cur = this.toks[this.G.cur];
+    if (cur && !this.moving){ cur.position.y = this.baseY + Math.sin(now/260)*0.04; }
+    if (cur){ this.ring.position.set(cur.position.x, 0.165, cur.position.z); this.ring.rotation.z = now/900; }
+    this.renderer.render(this.scene, this.camera);
+  },
+  baseY: 0.16 + 0.08,
+  tokXZ(pi, pos){ const p = this.pos(pos), s = SLOT[pi]; return { x: p.x + s[0]*0.98, z: p.z + s[1]*0.98 }; },
+  sync(G){
+    this.G = G;
+    G.players.forEach((p, i) => { const xz = this.tokXZ(i, p.pos); this.toks[i].position.set(xz.x, this.baseY, xz.z); });
+  },
+  async moveStep(pi, pos){
+    const m = this.toks[pi], from = m.position.clone(), xz = this.tokXZ(pi, pos); this.moving = true;
+    await this.tween(250, k => { const e = k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2; m.position.x = from.x + (xz.x-from.x)*e; m.position.z = from.z + (xz.z-from.z)*e; m.position.y = this.baseY + Math.sin(Math.PI*k)*0.45; });
+    m.position.y = this.baseY; this.moving = false;
+  },
+  async rollDice(v){
+    const T = this.T, d = this.die; const target = new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0), (Math.random()-.5)*0.8).multiply(this.faceQ(v));
+    const axis = new T.Vector3(Math.random()-.5, 1, Math.random()-.5).normalize(); const spinQ = new T.Quaternion(); const startQ = d.quaternion.clone();
+    const sx = (Math.random()-.5)*1.4;
+    await this.tween(900, k => {
+      // 拋起、旋轉，最後 30% 時間平滑轉到指定點數
+      d.position.y = 0.31 + Math.sin(Math.PI*k) * 1.6; d.position.x = sx*(1-k);
+      const spin = (1-k) * 14; spinQ.setFromAxisAngle(axis, spin);
+      const free = startQ.clone().multiply(spinQ);
+      if (k < 0.7) d.quaternion.copy(free); else d.quaternion.copy(free).slerp(target, (k-0.7)/0.3);
+    });
+    d.quaternion.copy(target); d.position.set(0, 0.31, 1.75);
+    await this.tween(120, k => { d.position.y = 0.31 + Math.sin(Math.PI*k)*0.12; });
+  },
+  focusTile(i){ const top = this.tiles[i].userData.top; this.tween(1300, k => { top.emissiveIntensity = Math.sin(Math.PI*k) * 0.55; }); },
+  setMessage(){},
+  // 效能偵測：量測一段時間內的平均 FPS
+  probeFps(ms=2200){
+    return new Promise(res => { const f0 = this.frames, t0 = performance.now(); setTimeout(() => res((this.frames - f0) * 1000 / (performance.now() - t0)), ms); });
+  },
+  destroy(){
+    this.destroyed = true; this.running = false; cancelAnimationFrame(this.raf); (this.tweens || []).forEach(t => t.res()); this.tweens = [];
+    try {
+      this.scene && this.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []); mats.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); });
+      this.renderer && this.renderer.dispose(); this.renderer && this.renderer.forceContextLoss();
+    } catch(e){}
+    if (this.host) this.host.innerHTML = ''; this.renderer = null; this.host = null; this.scene = null;
+  }
+};
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   六、遊戲狀態與流程（與畫面無關，3D／2D 共用）
+   ===================================================================== */
+let G = null;          // 目前遊戲狀態（可序列化、存進 localStorage）
+let R = null;          // 目前使用中的棋盤畫面（R3D 或 R2D）
+let busy = false;      // 動畫或對話進行中
+let switching = false;
+
+function newState(cfg){
+  return {
+    v:1, cfg, cur:0, round:1, over:false, timeUp:false, extra:false,
+    timeLimit: cfg.minutes * 60, remain: cfg.minutes * 60, qTime: cfg.qTime, view: cfg.mode === '2d' ? '2d' : '3d',
+    players: cfg.players.map((pl, i) => ({
+      name: pl.name, tok: pl.tok, color: PCOLORS[i].c, pos:0, timian:5, renqing:3, rank:0, skip:0, freeHint:0, moodKey:'scorn',
+      stats:{ right:0, wrong:0, scold:0, flatter:0, snow:0, brocade:0 }
+    })),
+    qdeck:null, fateDeck:null, worldDeck:null, log:[]
+  };
+}
+const save = () => { if (G && !G.over) STORE.set('save', G); };
+const curP = () => G.players[G.cur];
+const score = scoreOf;
+
+function log(html){
+  G.log.unshift(html); if (G.log.length > 60) G.log.length = 60;
+  const box = $('#logBox'); if (box) box.innerHTML = G.log.map(l => `<div class="log-line">${l}</div>`).join('');
+}
+const pTag = p => `<b style="color:${p.color}">${esc(p.name)}</b>`;
+
+/* ---------- 抽題：盡量抽與該格主題相符、且本局未出過的題目 ---------- */
+function drawQuestion(cats){
+  if (!G.qdeck || !G.qdeck.length || G.qdeck.some(i => !QBANK[i])) G.qdeck = shuffle(QBANK.map((_, i) => i));
+  let k = cats ? G.qdeck.findIndex(i => cats.includes(QBANK[i].cat)) : -1;
+  if (k < 0) k = 0;
+  return QBANK[G.qdeck.splice(k, 1)[0]];
+}
+function drawCard(kind){
+  const key = kind === 'fate' ? 'fateDeck' : 'worldDeck', src = kind === 'fate' ? FATE_CARDS : WORLD_CARDS;
+  if (!G[key] || !G[key].length) G[key] = shuffle(src.map((_, i) => i));
+  return src[G[key].shift()];
+}
+
+/* ---------- 套用效果：體面／人情／功名／休息…… 回傳顯示用的小標籤 ---------- */
+function chip(txt, up){ return `<span class="chip ${up===true?'up':up===false?'down':'neu'}">${txt}</span>`; }
+function applyEffect(p, eff){
+  if (!eff) return '';
+  const chips = []; let pos = 0, neg = 0;
+  const add = (pl, d, who) => {
+    [['timian','體面'],['renqing','人情']].forEach(([k, nm]) => {
+      const v = d && d[k]; if (!v) return;
+      pl[k] = Math.max(0, pl[k] + v); v > 0 ? pos++ : neg++;
+      chips.push(chip(`${who ? esc(who)+'：' : ''}${nm} ${v>0?'+':''}${v}`, v > 0));
+      const card = $(`#pcard${G.players.indexOf(pl)}`); if (card) floater(`${nm}${v>0?'+':''}${v}`, card, v>0 ? '#2f6b3f' : '#b23a2a');
+    });
+  };
+  let d = eff.d;
+  if (eff.tag === 'flatter' && d){ // 胡屠戶奉承遞減／領先者上限
+    const nd = CATCHUP.flatterAdjust(p, G, d);
+    if ((nd.renqing || 0) < (d.renqing || 0) || (nd.timian || 0) < (d.timian || 0)) chips.push(chip('奉承聽多了，加成遞減', null));
+    d = nd;
+  }
+  add(p, d);
+  if (eff.others) eff.others.forEach(o => add(o.p, o.d, o.p === p ? '' : o.p.name));
+  if (eff.all) G.players.forEach(pl => add(pl, eff.all, pl === p ? '' : pl.name));
+  if (eff.allRank2) G.players.filter(pl => pl.rank >= 2).forEach(pl => add(pl, eff.allRank2, pl === p ? '' : pl.name));
+  if (eff.target && eff.td) add(eff.target, eff.td, eff.target.name);
+  if (eff.rank != null && eff.rank > p.rank){
+    p.rank = eff.rank; chips.push(chip(`功名：${RANKS[p.rank].name}！`, true));
+    log(`🎉 ${pTag(p)} 考中<b>${RANKS[p.rank].name}</b>！`); setTimeout(() => SND.play('rank'), 350);
+  }
+  if (eff.skip){ p.skip += eff.skip; chips.push(chip('休息一回合', false)); neg++; }
+  if (eff.freeHint){ p.freeHint += eff.freeHint; chips.push(chip('免費提示 ×1', true)); pos++; }
+  if (eff.tag && p.stats[eff.tag] != null) p.stats[eff.tag]++;
+  if (pos && !eff.rank) SND.play('coin'); else if (neg && !pos) SND.play('down');
+  checkMoods(); updateUI(); save();
+  return chips.join(' ');
+}
+// 胡屠戶改口時提示（前倨後恭的關鍵時刻）
+function checkMoods(){
+  G.players.forEach(p => { const m = huMood(p); if (m.key !== p.moodKey){
+    const up = MOODS.findIndex(x=>x.key===m.key) > MOODS.findIndex(x=>x.key===p.moodKey); p.moodKey = m.key;
+    toast(`胡屠戶${up ? '換了一張臉' : '翻臉了'}：改叫 ${p.name}「${m.call}」！`, 3200);
+    log(`🔪 胡屠戶改叫 ${pTag(p)}「${m.call}」`);
+  }});
+}
+
+/* ---------- 回合流程 ---------- */
+async function startTurn(){
+  if (!G || G.over) return;
+  updateUI(); R && R.sync(G);
+  const p = curP();
+  if (p.skip > 0){
+    p.skip--; busy = true; setRoll(false);
+    await openModal({ title:`${p.name} 休息一回合`, badge:'瘋', html:'<p class="kai text-lg">還在昏昏沉沉，「如在夢裡一般」……這回合先歇著。</p>', buttons:[{ label:'下一位 ▶', value:1 }] });
+    busy = false; return endTurn();
+  }
+  setRoll(true); SND.play('turn');
+  setMsg(`輪到 ${p.name}，請擲骰子。`);
+  if (G.timeUp) return endGame();
+}
+function endTurn(){
+  if (!G || G.over) return;
+  if (G.timeUp) return endGame();
+  if (G.extra){ G.extra = false; save(); toast(`${curP().name} 再擲一次！`); return startTurn(); }
+  G.cur = (G.cur + 1) % G.players.length; if (G.cur === 0) G.round++;
+  save(); startTurn();
+}
+async function onRoll(){
+  if (busy || switching || !G || G.over || !R) return;
+  busy = true; setRoll(false);
+  try {
+    const p = curP(), v = 1 + rand(6);
+    SND.play('dice'); await R.rollDice(v);
+    log(`${pTag(p)} 擲出 <b>${v}</b> 點`); setMsg(`${p.name} 擲出 ${v} 點`);
+    await movePlayer(G.cur, v);
+    await resolveTile(G.cur, 0);
+  } catch(e){ console.error(e); }
+  busy = false; endTurn();
+}
+async function movePlayer(pi, steps, triggers=true){
+  const p = G.players[pi], dir = steps < 0 ? -1 : 1, n = Math.abs(steps);
+  for (let s = 1; s <= n; s++){
+    p.pos = (p.pos + dir + N_TILES) % N_TILES;
+    await R.moveStep(pi, p.pos); SND.play('step');
+    if (dir > 0 && p.pos === 0){ // 經過起點
+      applyEffect(p, { d:{ renqing:1 } }); toast(`${p.name} 經過「應考半生」：又熬過一年，人情 +1`);
+    }
+    const t = TILES[p.pos];
+    if (triggers && dir > 0 && s < n && t.type === 'exam' && t.eligible(p)){
+      R.focusTile(p.pos);
+      await takeExam(p, t, `路過考場：${t.name}`, '考場不等人！路過也要應考，考完再繼續前進。');
+    }
+  }
+  save();
+}
+// 考場：落後玩家答錯可補考一次（名落孫山也可再考）
+async function takeExam(p, t, title, sub){
+  const canRetry = t.eligible && t.eligible(p) && CATCHUP.canRetry(p, G);
+  const ok = await askQuestion({ p, tile:t, title, sub, effectFn: ok => (!ok && canRetry) ? { msg:'可惜答錯了。你目前落後，可以「補考」一次！' } : t.effect(p, ok) });
+  if (!ok && canRetry){
+    log(`🔥 ${pTag(p)} 獲得補考機會`);
+    return askQuestion({ p, tile:t, title:`補考：${t.name}`, sub:'名落孫山也可再考！這是落後玩家的補考機會。', effectFn: ok => t.effect(p, ok) });
+  }
+  return ok;
+}
+async function resolveTile(pi, depth){
+  const p = G.players[pi], t = TILES[p.pos];
+  R.focusTile(p.pos); SND.play('land'); await sleep(350);
+  if (t.type === 'start'){ log(`${pTag(p)} 回到「應考半生」`); setMsg(t.story); return; }
+  if (t.type === 'fate' || t.type === 'world'){
+    const eff = await showCard(t.type, p);
+    if (!eff) return;
+    if (eff.extra) G.extra = true;
+    let steps = 0;
+    if (eff.move) steps = eff.move;
+    if (eff.goto != null) steps = (eff.goto - p.pos + N_TILES) % N_TILES;
+    if (steps){
+      await sleep(250); await movePlayer(pi, steps, true);
+      const nt = TILES[p.pos];
+      if (depth < 1 && nt.type !== 'fate' && nt.type !== 'world') await resolveTile(pi, depth + 1);
+    }
+    return;
+  }
+  if (t.type === 'exam') return void await takeExam(p, t, t.name, t.story);
+  await askQuestion({ p, tile:t, title:t.name, sub:t.story, effectFn: ok => t.effect(p, ok) });
+}
+
+/* ---------- 對話框（Promise 版）---------- */
+function openModal({ title, badge, color, html, buttons }){
+  return new Promise(res => {
+    const box = $('#modalBox');
+    box.innerHTML = `<div class="flex items-center gap-3 mb-3">${badge ? `<span class="seal w-10 h-10 text-xl" style="background:${color||'var(--zhu)'}">${badge}</span>` : ''}<div class="kai text-2xl">${esc(title)}</div></div>
+      <div>${html || ''}</div><div class="flex gap-2 justify-end mt-4 flex-wrap" id="mBtns"></div>`;
+    (buttons || [{ label:'好', value:1 }]).forEach(b => {
+      const el = document.createElement('button'); el.className = b.cls || 'btn-seal text-lg'; el.textContent = b.label; el.dataset.testid = 'modal-btn';
+      el.onclick = () => { hide('#modalLayer'); res(b.value); }; $('#mBtns', box).appendChild(el);
+    });
+    show('#modalLayer', 'flex'); box.scrollTop = 0;
+  });
+}
+
+/* ---------- 答題 ---------- */
+function askQuestion({ p, tile, title, sub, effectFn }){
+  return new Promise(res => {
+    const q = drawQuestion(tile && tile.cats);
+    const order = q.o.length > 2 ? shuffle(q.o.map((_, i) => i)) : q.o.map((_, i) => i);
+    const st = TYPE_STYLE[tile ? tile.type : 'q'];
+    const box = $('#modalBox'); let done = false, timer = 0, hinted = false, left = G.qTime;
+    const behind = CATCHUP.isBehind(p, G); // 作答前判定是否落後
+    box.innerHTML = `
+      <div class="flex items-start gap-3 mb-2">
+        <span class="seal w-10 h-10 text-xl flex-none" style="background:${st.color}">${st.badge}</span>
+        <div class="flex-1 min-w-0"><div class="kai text-2xl leading-tight">${esc(title)}</div><div class="text-sm opacity-75 kai mt-0.5">${esc(sub || '')}</div></div>
+      </div>
+      <div class="flex items-center gap-2 text-sm mb-2"><span class="ptok" style="width:24px;height:24px;font-size:.8rem;background:${p.color}">${esc(p.tok)}</span><span class="kai">${esc(p.name)} 作答</span>${behind ? '<span class="chip down kai" title="落後玩家：答對額外體面 +1">🔥 追分中</span>' : ''}
+        <span class="chip neu ml-auto">${esc(q.cat)}</span></div>
+      <div class="kai text-[1.32rem] leading-relaxed mb-3" style="user-select:text">${esc(q.q)}</div>
+      ${G.qTime ? `<div class="qtimer mb-3"><div id="qbar" style="width:100%"></div></div>` : ''}
+      <div class="grid gap-2" id="qOpts">${order.map((oi, k) => `<button class="opt-btn" data-oi="${oi}" data-testid="opt"><span class="ok">${q.o.length===2 ? '' : LETTERS[k]}</span><span class="kai flex-1">${esc(q.o[oi])}</span></button>`).join('')}</div>
+      <div class="flex items-center gap-2 mt-3" id="qTools">
+        <button class="btn-ink text-sm" id="qHint">${p.freeHint ? '🙏 文昌庇佑（免費）刪去一個錯誤選項' : '🤝 請教同案（人情 −1）刪去一個錯誤選項'}</button>
+        ${G.qTime ? `<span class="ml-auto kai text-sm opacity-70">剩 <span id="qLeft">${left}</span> 秒</span>` : ''}
+      </div>
+      <div id="qRes" style="display:none"></div>`;
+    const btns = $$('.opt-btn', box);
+    const hintBtn = $('#qHint', box);
+    if (q.o.length <= 2 || (!p.freeHint && p.renqing < 1)) hintBtn.disabled = true, hintBtn.style.opacity = .45;
+    hintBtn.onclick = () => {
+      if (hinted || done) return; const wrong = btns.filter(b => +b.dataset.oi !== q.a && !b.disabled);
+      if (wrong.length < 2) return;
+      if (p.freeHint) p.freeHint--; else { p.renqing--; floater('人情-1', $(`#pcard${G.players.indexOf(p)}`), '#b23a2a'); }
+      const b = wrong[rand(wrong.length)]; b.disabled = true; b.classList.add('gone'); hinted = true; hintBtn.disabled = true; hintBtn.style.opacity = .45; updateUI();
+    };
+    const finish = (chosen) => {
+      if (done) return; done = true; clearInterval(timer);
+      const ok = chosen === q.a;
+      btns.forEach(b => { b.disabled = true; const oi = +b.dataset.oi; if (oi === q.a) b.classList.add('right'); else if (oi === chosen) b.classList.add('wrong'); });
+      ok ? (p.stats.right++, SND.play('right')) : (p.stats.wrong++, SND.play('wrong'));
+      log(`${pTag(p)} ${ok ? '答對' : '答錯'}了「${esc(q.q.slice(0, 14))}…」`);
+      hide($('#qTools', box));
+      let eff = effectFn ? effectFn(ok) : null;
+      if (ok && behind) eff = CATCHUP.withRightBonus(eff);
+      const chips = applyEffect(p, eff);
+      const resEl = $('#qRes', box);
+      resEl.innerHTML = `
+        <div class="mt-3 p-3 rounded-lg ${ok ? 'bg-[rgba(61,107,79,.1)]' : 'bg-[rgba(178,58,42,.08)]'}">
+          <div class="kai text-xl mb-1">${ok ? '✔ 答對了！' : (chosen < 0 ? '⌛ 時間到！' : '✘ 答錯了')}　<span class="text-base opacity-80">正解：${esc(q.o[q.a])}</span></div>
+          ${q.e ? `<div class="text-[0.98rem] leading-relaxed" style="user-select:text">📜 ${esc(q.e)}</div>` : ''}
+        </div>
+        ${eff && eff.msg ? `<div class="mt-3 kai text-lg leading-relaxed">${esc(eff.msg)}</div>` : ''}
+        <div class="mt-2 flex flex-wrap gap-1">${chips}</div>
+        <div class="flex justify-end mt-3"><button class="btn-seal text-lg" id="qNext" data-testid="btn-continue">繼續 ▶</button></div>`;
+      show(resEl); if (eff && eff.msg) setMsg(eff.msg);
+      $('#qNext', box).onclick = () => { hide('#modalLayer'); res(ok); };
+      setTimeout(() => resEl.scrollIntoView({ behavior:'smooth', block:'end' }), 60);
+    };
+    btns.forEach(b => b.onclick = () => finish(+b.dataset.oi));
+    if (G.qTime){
+      timer = setInterval(() => {
+        if ($('#sheetLayer').style.display === 'flex') return; // 開啟說明時暫停
+        left--; const l = $('#qLeft', box), bar = $('#qbar', box);
+        if (l) l.textContent = Math.max(0, left); if (bar) bar.style.width = Math.max(0, left / G.qTime * 100) + '%';
+        if (left <= 0) finish(-1);
+      }, 1000);
+    }
+    show('#modalLayer', 'flex'); box.scrollTop = 0;
+  });
+}
+
+/* ---------- 抽卡 ---------- */
+function showCard(kind, p){
+  return new Promise(res => {
+    const card = drawCard(kind); const st = TYPE_STYLE[kind]; const box = $('#modalBox');
+    SND.play('card');
+    // 「雪中送炭」的對象：體面最低的其他玩家
+    const others = G.players.filter(x => x !== p); const target = others.slice().sort((a, b) => score(a) - score(b) || a.timian - b.timian)[0];
+    box.innerHTML = `
+      <div class="card-face flip-in mt-3" style="--tc:${st.color}">
+        <div class="ctype">${st.name}</div>${card.catchup ? '<span class="chip down kai absolute right-3 top-3">追分卡</span>' : ''}
+        <div class="kai text-3xl mt-2 mb-2">${esc(card.title)}</div>
+        <div class="kai text-xl leading-relaxed">${esc(card.text)}${card.choice && target ? `<div class="text-base mt-1 opacity-80">（對象：${esc(target.name)}）</div>` : ''}</div>
+        <div class="text-sm mt-3 opacity-75">📜 小知識：${esc(card.note)}</div>
+      </div>
+      <div class="text-sm mt-2 opacity-70 kai">抽卡者：${esc(p.name)}</div>
+      <div id="cRes" class="mt-3"></div>
+      <div class="flex gap-2 justify-end mt-3 flex-wrap" id="cBtns"></div>`;
+    const btnBox = $('#cBtns', box);
+    const finish = (eff) => {
+      btnBox.innerHTML = '';
+      const chips = applyEffect(p, eff);
+      $('#cRes', box).innerHTML = `<div class="kai text-lg">${esc(eff.msg || '')}</div><div class="mt-2 flex flex-wrap gap-1">${chips}</div>`;
+      setMsg(`${card.title}：${eff.msg || ''}`); log(`${pTag(p)} 抽到${st.name}「${esc(card.title)}」`);
+      const b = document.createElement('button'); b.className = 'btn-seal text-lg'; b.textContent = '繼續 ▶'; b.dataset.testid = 'btn-continue';
+      b.onclick = () => { hide('#modalLayer'); res(eff); }; btnBox.appendChild(b);
+    };
+    if (card.choice){
+      card.choice.forEach(ch => { const b = document.createElement('button'); b.className = 'btn-ink text-base kai'; b.textContent = ch.label; b.dataset.testid = 'choice';
+        b.onclick = () => finish(ch.run(p, G, target)); btnBox.appendChild(b); });
+    } else {
+      const b = document.createElement('button'); b.className = 'btn-seal text-lg'; b.textContent = '翻開結果'; b.dataset.testid = 'btn-reveal';
+      b.onclick = () => finish(card.run(p, G)); btnBox.appendChild(b);
+    }
+    show('#modalLayer', 'flex'); box.scrollTop = 0;
+  });
+}
+
+/* ---------- 結算 ---------- */
+function endGame(){
+  if (!G || G.over) return;
+  G.over = true; STORE.del('save'); setRoll(false); hide('#modalLayer'); hide('#toast');
+  const ranked = G.players.slice().sort((a, b) => score(b) - score(a) || b.stats.right - a.stats.right);
+  const titles = ['解元','亞元','第三名','第四名'];
+  $('#rankList').innerHTML = ranked.map((p, i) => `
+    <div class="pcard flex items-center gap-3 ${i===0?'cur':''}" style="animation:fadein .5s ${i*0.15}s both">
+      <span class="seal w-12 h-12 text-base flex-none" style="background:${i===0?'var(--zhu)':'#6b5a48'}">${titles[i]}</span>
+      <span class="ptok" style="background:${p.color}">${esc(p.tok)}</span>
+      <div class="flex-1 min-w-0"><div class="kai text-xl truncate">${esc(p.name)} <span class="text-sm opacity-70">${RANKS[p.rank].name}</span></div>
+        <div class="text-sm opacity-80">體面 ${p.timian}｜人情 ${p.renqing}｜功名 +${RANKS[p.rank].bonus}｜答對 ${p.stats.right}／${p.stats.right+p.stats.wrong}</div>
+        <div class="text-xs opacity-60 kai">胡屠戶最後叫你：「${huMood(p).call}」</div></div>
+      <div class="kai text-3xl text-zhu">${score(p)}</div>
+    </div>`).join('');
+  const best = (f) => { const m = Math.max(...G.players.map(f)); return m > 0 ? G.players.filter(p => f(p) === m) : []; };
+  const awards = [
+    ['📚 學富五車（答對最多）', best(p => p.stats.right)],
+    ['🔥 雪中送炭', G.players.filter(p => p.stats.snow > 0)],
+    ['🥩 胡屠戶的心頭肉（被奉承最多）', best(p => p.stats.flatter)],
+    ['💦 狗血噴頭（被罵最多）', best(p => p.stats.scold)]
+  ].filter(a => a[1].length);
+  $('#awardList').innerHTML = awards.map(a => `<span class="chip neu kai text-base py-1">${a[0]}：${a[1].map(p => esc(p.name)).join('、')}</span>`).join('');
+  $('#reflectList').innerHTML = shuffle(REFLECTIONS).slice(0, 3).map(r => `<li>${esc(r)}</li>`).join('');
+  unmountRenderer(); showScreen('scrEnd'); SND.play('end');
+}
+
+/* =====================================================================
+   七、畫面（renderer）掛載與 3D／2D 切換
+   ===================================================================== */
+async function mountRenderer(want, { auto=false, silent=false } = {}){
+  switching = true; unmountRenderer();
+  const host = $('#boardHost');
+  const opts = { onTileClick: tileInfo, strict: auto, onLost: () => { toast('3D 畫面中斷，已改用 2D'); mountRenderer('2d'); } };
+  if (want === '3d'){
+    host.innerHTML = '<div class="absolute inset-0 flex items-center justify-center kai text-lg opacity-70">3D 棋盤載入中……</div>';
+    const r = Object.create(R3D);
+    try {
+      host.innerHTML = '';
+      await r.init(host, G, opts); R = r; G.view = '3d';
+      if (auto) r.probeFps(2200).then(fps => {
+        if (R !== r) return; console.info('[范進命運棋] 3D 平均 FPS', fps.toFixed(1));
+        if (fps < 24){ const doIt = () => { if (busy) return setTimeout(doIt, 500); toast(`偵測到 3D 畫面較卡（約 ${Math.round(fps)} FPS），已自動切換為 2D 版`, 4200); mountRenderer('2d'); }; doIt(); }
+      });
+    } catch(e){
+      console.warn('[范進命運棋] 3D 失敗，改用 2D：', e && e.message);
+      try { r.destroy(); } catch(_){}
+      if (!silent) toast(`無法使用 3D（${e && e.message || '未知原因'}），已改用 2D 版`, 4200);
+      host.innerHTML = ''; want = '2d';
+    }
+  }
+  if (want === '2d'){ const r = Object.create(R2D); await r.init(host, G, opts); R = r; G.view = '2d'; }
+  R.sync(G); updateUI(); save(); switching = false;
+}
+function unmountRenderer(){ if (R){ try { R.destroy(); } catch(e){} R = null; } }
+async function toggleMode(){
+  if (!G || G.over) return;
+  if (busy || switching) return toast('動畫進行中，請稍候再切換');
+  const want = G.view === '3d' ? '2d' : '3d';
+  G.cfg.mode = want; // 手動切換後記住偏好
+  await mountRenderer(want, { auto:false });
+  if (want === '3d' && R && R.name === '3d') toast('已切換為 3D 版（可拖曳旋轉、雙指縮放，雙擊回正）');
+  if (want === '2d') toast('已切換為 2D 版');
+}
+function tileInfo(i){
+  const t = TILES[i], st = TYPE_STYLE[t.type];
+  toast(`【${i}・${t.name}】${st.name}｜${t.story}`, 4200);
+}
+function setMsg(t){ if (R && R.setMessage) R.setMessage(t); }
+
+/* =====================================================================
+   八、介面更新
+   ===================================================================== */
+function setRoll(on){ const b = $('#btnRoll'); if (b) b.disabled = !on; }
+function huFaceSVG(att){
+  const t = att / 100;
+  const inner = 41 - t*9, outer = 35 + t*1, mouthC = 70 + (t - 0.45) * 26, blush = t > 0.75 ? 0.5 : 0;
+  const eyes = t > 0.75
+    ? `<path d="M31 47 q5 -5 10 0 M55 47 q5 -5 10 0" stroke="#1f1a17" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : `<ellipse cx="36" cy="47" rx="3" ry="${t<0.3?2:3}" fill="#1f1a17"/><ellipse cx="60" cy="47" rx="3" ry="${t<0.3?2:3}" fill="#1f1a17"/>`;
+  return `<svg viewBox="0 0 96 96" width="100%" height="100%">
+    <circle cx="48" cy="50" r="40" fill="#f3d9b5" stroke="#1f1a17" stroke-width="2.5"/>
+    <path d="M14 38 Q48 2 82 38 Q70 22 48 20 Q26 22 14 38Z" fill="#2b2420"/>
+    <circle cx="48" cy="14" r="7" fill="#2b2420"/>
+    <path d="M26 ${outer} L42 ${inner}" stroke="#1f1a17" stroke-width="4" stroke-linecap="round"/>
+    <path d="M70 ${outer} L54 ${inner}" stroke="#1f1a17" stroke-width="4" stroke-linecap="round"/>
+    ${eyes}
+    <ellipse cx="28" cy="60" rx="7" ry="4" fill="#e07a5f" opacity="${blush}"/><ellipse cx="68" cy="60" rx="7" ry="4" fill="#e07a5f" opacity="${blush}"/>
+    <path d="M48 52 q-3 7 0 9" stroke="#8a5a3a" stroke-width="2" fill="none"/>
+    <path d="M34 64 Q42 60 48 64 Q54 60 62 64" stroke="#1f1a17" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M38 71 Q48 ${mouthC} 58 71" stroke="#7a2318" stroke-width="3" fill="${t>0.75?'#7a2318':'none'}" stroke-linecap="round"/>
+  </svg>`;
+}
+function updateUI(){
+  if (!G) return;
+  const p = curP(), m = huMood(p), att = huAtt(p);
+  $('#curTok').style.background = p.color; $('#curTok').textContent = p.tok;
+  $('#curName').textContent = p.name; $('#curRound').textContent = `第 ${G.round} 輪`;
+  $('#curRank').textContent = RANKS[p.rank].name;
+  $('#roundInfo').textContent = `第 ${G.round} 輪`;
+  $('#huFace').innerHTML = huFaceSVG(att);
+  $('#huMood').textContent = m.label; $('#huQuote').textContent = `對 ${p.name}：${m.quote}`;
+  $('#huNeedle').style.left = Math.max(2, Math.min(98, att)) + '%';
+  $('#playerList').innerHTML = G.players.map((pl, i) => `
+    <div class="pcard ${i===G.cur?'cur':''}" id="pcard${i}">
+      <div class="flex items-center gap-2"><span class="ptok" style="background:${pl.color}">${esc(pl.tok)}</span>
+        <div class="flex-1 min-w-0"><div class="kai text-base truncate">${esc(pl.name)}</div><div class="text-[11px] opacity-65 truncate">屠戶叫他「${huMood(pl).call}」${pl.skip?'・休息中':''}</div>${CATCHUP.isBehind(pl, G) ? '<div class="text-[11px] text-zhu kai">🔥 追分中：答對體面 +1、可補考</div>' : CATCHUP.isLeader(pl, G) ? '<div class="text-[11px] kai" style="color:var(--jin)">👑 領先：奉承加成上限 +1</div>' : ''}</div>
+        <span class="chip ${pl.rank===2?'down':'neu'} kai">${RANKS[pl.rank].name}</span></div>
+      <div class="flex justify-between mt-1.5 text-sm kai"><span>體面 <b>${pl.timian}</b></span><span>人情 <b>${pl.renqing}</b></span><span class="text-zhu">聲望 <b>${score(pl)}</b></span></div>
+    </div>`).join('');
+  const mb = $('#btnMode'); mb.textContent = G.view === '3d' ? '改用 2D' : '改用 3D';
+  $('#modeBadge').textContent = G.view === '3d' ? '3D 棋盤・拖曳旋轉／雙指縮放／點格子看說明' : '2D 棋盤・點格子看說明';
+  $('#logBox').innerHTML = G.log.map(l => `<div class="log-line">${l}</div>`).join('');
+  updateTimer();
+}
+function updateTimer(){
+  if (!G) return; const box = $('#timerBox');
+  if (!G.timeLimit){ hide(box); return; }
+  show(box, 'block'); const s = Math.max(0, G.remain);
+  $('#timerTxt').textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  box.style.color = s <= 60 ? 'var(--zhu)' : '';
+}
+setInterval(() => {
+  if (!G || G.over || !G.timeLimit || G.timeUp) return;
+  if ($('#scrGame').style.display !== 'flex' || document.hidden || $('#sheetLayer').style.display === 'flex') return;
+  G.remain--; updateTimer();
+  if (G.remain % 15 === 0) save();
+  if (G.remain <= 0){
+    G.timeUp = true; toast('⏰ 時間到！這一回合結束後就放榜。', 4000);
+    if (!busy) endGame();
+  }
+}, 1000);
+function showScreen(id){
+  $$('.screen').forEach(s => hide(s));
+  show('#' + id, id === 'scrGame' ? 'flex' : 'block');
+}
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   九、開局設定
+   ===================================================================== */
+let setupCfg = Object.assign({ n:2, names:['第一組','第二組','第三組','第四組'], toks:['甲','乙','丙','丁'], time:'20', custom:15, qTime:'30', mode:'auto' }, STORE.get('config', {}));
+function renderSetup(){
+  $$('#pCountBtns button').forEach(b => b.classList.toggle('on', +b.dataset.n === setupCfg.n));
+  $('#pRows').innerHTML = Array.from({ length:setupCfg.n }, (_, i) => `
+    <div class="flex items-center gap-2">
+      <span class="ptok" style="background:${PCOLORS[i].c}" id="ptPrev${i}">${esc(setupCfg.toks[i])}</span>
+      <input type="text" maxlength="10" class="flex-1 min-w-0 kai text-lg" value="${esc(setupCfg.names[i])}" data-name="${i}" placeholder="玩家／組名">
+      <label class="text-sm opacity-70 whitespace-nowrap">棋子字</label>
+      <input type="text" maxlength="1" class="w-14 text-center kai text-lg" value="${esc(setupCfg.toks[i])}" data-tok="${i}">
+    </div>`).join('');
+  $$('#pRows [data-name]').forEach(el => el.oninput = () => { setupCfg.names[+el.dataset.name] = el.value; });
+  $$('#pRows [data-tok]').forEach(el => el.oninput = () => { const i = +el.dataset.tok; setupCfg.toks[i] = el.value; $(`#ptPrev${i}`).textContent = el.value; });
+  $('#selTime').value = setupCfg.time; $('#inpTimeCustom').value = setupCfg.custom; $('#selQTime').value = setupCfg.qTime; $('#selMode').value = setupCfg.mode;
+  $('#inpTimeCustom').style.display = setupCfg.time === 'custom' ? 'block' : 'none';
+}
+function readSetup(){
+  setupCfg.time = $('#selTime').value; setupCfg.custom = Math.max(1, Math.min(180, parseInt($('#inpTimeCustom').value) || 15));
+  setupCfg.qTime = $('#selQTime').value; setupCfg.mode = $('#selMode').value; STORE.set('config', setupCfg);
+  const minutes = setupCfg.time === 'custom' ? setupCfg.custom : +setupCfg.time;
+  return {
+    minutes, qTime: +setupCfg.qTime, mode: setupCfg.mode,
+    players: Array.from({ length:setupCfg.n }, (_, i) => {
+      const name = (setupCfg.names[i] || '').trim() || `第${'一二三四'[i]}組`;
+      const tok = (setupCfg.toks[i] || '').trim().slice(0, 1) || name.slice(0, 1);
+      return { name, tok };
+    })
+  };
+}
+async function startGame(cfg){
+  G = newState(cfg); busy = false;
+  showScreen('scrGame');
+  log(`科場開考！共 ${G.players.length} 位考生。${G.timeLimit ? `限時 ${cfg.minutes} 分鐘。` : '不計時。'}`);
+  await mountRenderer(cfg.mode === '2d' ? '2d' : '3d', { auto: cfg.mode === 'auto' });
+  G.players.forEach(p => p.moodKey = huMood(p).key);
+  startTurn();
+}
+async function resumeGame(){
+  const s = STORE.get('save', null); if (!s || s.over) return;
+  G = s; busy = false; showScreen('scrGame');
+  await mountRenderer(G.view === '2d' ? '2d' : '3d', { auto: G.cfg.mode === 'auto' && G.view !== '2d' });
+  toast('已接續上一局'); startTurn();
+}
+
+/* =====================================================================
+   十、說明／設定／教師模式（sheet 圖層）
+   ===================================================================== */
+function openSheet(html){ const b = $('#sheetBox'); b.innerHTML = `<div class="flex justify-end -mb-2"><button class="btn-ink topbar-btn" id="sheetClose" title="關閉">✕</button></div>` + html; show('#sheetLayer', 'flex'); b.scrollTop = 0; $('#sheetClose').onclick = closeSheet; }
+function closeSheet(){ hide('#sheetLayer'); }
+
+function openRules(){
+  const legend = Object.values(TYPE_STYLE).map(s => `<span class="inline-flex items-center gap-1 mr-3 mb-1"><span class="seal w-6 h-6 text-sm" style="background:${s.color}">${s.badge}</span>${s.name}</span>`).join('');
+  openSheet(`
+    <h2 class="kai text-3xl mb-3">📖 玩法說明</h2>
+    <div class="space-y-3 leading-relaxed">
+      <p><b class="kai text-lg">目標：</b>沿著〈范進中舉〉的故事時間軸走棋，答題、抽卡、應考，累積<b>聲望</b>。時間到時聲望最高者為「解元」。<b>沒有人會破產出局</b>，大家都玩到最後。</p>
+      <p><b class="kai text-lg">聲望＝</b>體面＋人情＋功名加分（童生 0、秀才 +5、舉人 +10）。</p>
+      <div><b class="kai text-lg">回合：</b>擲一顆骰子前進。停在格子上：</div>
+      <ul class="list-disc pl-6">
+        <li>問答、考場、胡屠戶、情節格：先答一題，答對與否會影響結果，答完會顯示解析。</li>
+        <li>命運卡、世態卡：抽一張卡，認識科舉知識與人情冷暖；有些卡要你做選擇。</li>
+        <li><b>考場（童試、鄉試）</b>：童生路過或停在「童試」要應考，答對升為秀才；秀才路過或停在「鄉試」要應考，答對升為舉人。</li>
+        <li>經過起點「應考半生」：人情 +1。</li>
+      </ul>
+      <p><b class="kai text-lg">胡屠戶的臉色：</b>依你的功名與體面變化──童生時被罵「現世寶」，中了舉就成了「賢婿老爺」。停在胡屠戶格時，他的臉色決定你是挨罵還是被奉承。這正是課文的「前倨後恭」。</p>
+      <p><b class="kai text-lg">公平機制（追分）：</b>聲望比全體平均低 3 分以上的玩家會顯示「🔥 追分中」：答對題目額外體面 +1，考場答錯可「補考」一次。胡屠戶的奉承越聽越不稀罕（加成遞減），領先者的奉承加成最多 +1。另有 9 張「追分卡」專門照顧落後的玩家（鄰里接濟、名落孫山也可再考、宗師憐才、樹大招風……）。</p>
+      <p><b class="kai text-lg">提示：</b>答題時可「請教同案」花 1 點人情刪去一個錯誤選項。</p>
+      <p><b class="kai text-lg">3D／2D：</b>右上角按鈕可隨時切換，進度不會遺失。3D 可拖曳旋轉、雙指縮放，雙擊回正；點格子可看該格說明。</p>
+      <div class="pt-1">${legend}</div>
+      <p class="text-sm opacity-70">※「鄉紳來訪」為延伸格，取材自原著第三回課文以後的情節。</p>
+    </div>`);
+}
+function openSettings(){
+  openSheet(`
+    <h2 class="kai text-3xl mb-3">⚙ 音樂與音效</h2>
+    <div class="grid gap-4">
+      <div class="paper-card p-3"><div class="flex items-center gap-3"><b class="kai text-lg flex-1">背景音樂</b><button class="btn-ink" id="sBgm"></button></div>
+        <input type="range" min="0" max="1" step="0.05" id="sBgmVol" class="w-full mt-2"><div class="text-xs opacity-60 mt-1" id="bgmStatus"></div>
+        <div class="text-xs opacity-60 mt-1">想換音樂？把新的音檔命名為 <code>bgm.mp3</code>，覆蓋同資料夾的舊檔即可。</div></div>
+      <div class="paper-card p-3"><div class="flex items-center gap-3"><b class="kai text-lg flex-1">音效</b><button class="btn-ink" id="sSfx"></button><button class="btn-ink" id="sTest">試聽</button></div>
+        <input type="range" min="0" max="1" step="0.05" id="sSfxVol" class="w-full mt-2"></div>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn-ink" id="sFull">⛶ 全螢幕</button>
+        <button class="btn-ink" data-open="teacher">🧑‍🏫 教師模式（題庫）</button>
+        ${G && !G.over ? '<button class="btn-ink" id="sHome">🏠 回首頁（進度已自動儲存）</button>' : ''}
+      </div>
+    </div>`);
+  const sync = () => { $('#sBgm').textContent = SND.cfg.bgmOn ? '開' : '關'; $('#sBgm').classList.toggle('on', SND.cfg.bgmOn);
+    $('#sSfx').textContent = SND.cfg.sfxOn ? '開' : '關'; $('#sSfx').classList.toggle('on', SND.cfg.sfxOn); refreshAudioUI(); };
+  $('#sBgmVol').value = SND.cfg.bgmVol; $('#sSfxVol').value = SND.cfg.sfxVol;
+  $('#sBgm').onclick = () => { SND.cfg.bgmOn = !SND.cfg.bgmOn; SND.save(); SND.unlock(); SND.syncBgm(); sync(); };
+  $('#sSfx').onclick = () => { SND.cfg.sfxOn = !SND.cfg.sfxOn; SND.save(); sync(); };
+  $('#sBgmVol').oninput = e => SND.setBgmVol(+e.target.value);
+  $('#sSfxVol').oninput = e => SND.setSfxVol(+e.target.value);
+  $('#sTest').onclick = () => { SND.unlock(); SND.play('right'); setTimeout(() => SND.play('coin'), 500); setTimeout(() => SND.play('dice'), 900); };
+  $('#sFull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen || (()=>{})).call(d))?.catch?.(()=>{}); };
+  const h = $('#sHome'); if (h) h.onclick = () => { save(); closeSheet(); unmountRenderer(); G = null; goTitle(); };
+  sync();
+}
+
+/* ---------- 教師模式：題庫管理 ---------- */
+let tFilter = '', tEditing = -1;
+function openTeacher(){
+  const cats = [...new Set([...CATS, ...QBANK.map(q => q.cat)])];
+  const counts = cats.map(c => `${c} ${QBANK.filter(q => q.cat === c).length}`).join('・');
+  const list = QBANK.map((q, i) => ({ q, i })).filter(x => !tFilter || x.q.cat === tFilter);
+  openSheet(`
+    <h2 class="kai text-3xl mb-1">🧑‍🏫 教師模式：題庫管理</h2>
+    <p class="text-sm opacity-70 mb-3">目前共 ${QBANK.length} 題（${counts}）。修改會存在此瀏覽器；要帶到其他裝置請「匯出 JSON」。</p>
+    <div class="flex flex-wrap gap-2 mb-3">
+      <button class="btn-seal" id="tAdd">＋ 新增題目</button>
+      <button class="btn-ink" id="tExpJ">匯出 JSON</button>
+      <button class="btn-ink" id="tImpJ">匯入 JSON</button>
+      <button class="btn-ink" id="tImpX">匯入 Excel</button>
+      <button class="btn-ink" id="tExpX">匯出 Excel（範本）</button>
+      <button class="btn-ink" id="tReset">還原預設題庫</button>
+      <input type="file" id="tFileJ" accept=".json,application/json" style="display:none">
+      <input type="file" id="tFileX" accept=".xlsx,.xls,.csv" style="display:none">
+    </div>
+    <div id="tEditor" style="display:none" class="paper-card p-3 mb-3"></div>
+    <div class="flex items-center gap-2 mb-2"><span class="text-sm">篩選分類</span>
+      <select id="tCat"><option value="">全部</option>${cats.map(c => `<option ${c===tFilter?'selected':''}>${esc(c)}</option>`).join('')}</select>
+      <span class="text-xs opacity-60 ml-auto">Excel 欄位：分類｜題目｜選項A｜選項B｜選項C｜選項D｜答案(A–D)｜解析</span></div>
+    <div class="overflow-x-auto"><table class="tbl w-full">
+      <thead><tr class="kai text-left"><th>#</th><th>分類</th><th>題目</th><th>答案</th><th></th></tr></thead>
+      <tbody>${list.map(({ q, i }) => `<tr><td>${i+1}</td><td class="whitespace-nowrap">${esc(q.cat)}</td><td>${esc(q.q)}</td><td class="whitespace-nowrap">${LETTERS[q.a]}．${esc(q.o[q.a]).slice(0, 12)}</td>
+        <td class="whitespace-nowrap"><button class="btn-ink text-sm" data-ed="${i}">編輯</button> <button class="btn-ink text-sm" data-del="${i}">刪除</button></td></tr>`).join('')}</tbody>
+    </table></div>`);
+  $('#tCat').onchange = e => { tFilter = e.target.value; openTeacher(); };
+  $('#tAdd').onclick = () => editQuestion(-1);
+  $$('[data-ed]').forEach(b => b.onclick = () => editQuestion(+b.dataset.ed));
+  $$('[data-del]').forEach(b => b.onclick = () => { const i = +b.dataset.del; if (confirm(`確定刪除第 ${i+1} 題？\n${QBANK[i].q}`)){ QBANK.splice(i, 1); if (!QBANK.length) QBANK = DEFAULT_QUESTIONS.map(normQuestion); bankChanged(); openTeacher(); } });
+  $('#tExpJ').onclick = () => download('fanjin-questions.json', JSON.stringify(QBANK, null, 2), 'application/json');
+  $('#tImpJ').onclick = () => $('#tFileJ').click();
+  $('#tFileJ').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const data = JSON.parse(await f.text()); importQuestions(Array.isArray(data) ? data : (data.questions || [])); } catch(err){ alert('JSON 格式錯誤：' + err.message); } };
+  $('#tImpX').onclick = () => $('#tFileX').click();
+  $('#tFileX').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const X = await loadXLSX(); const wb = X.read(await f.arrayBuffer()); const rows = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' }); importQuestions(rows.map(rowToQuestion)); } catch(err){ alert('Excel 讀取失敗：' + err.message); } };
+  $('#tExpX').onclick = async () => { try { const X = await loadXLSX(); const ws = X.utils.json_to_sheet(QBANK.map(q => ({ 分類:q.cat, 題目:q.q, 選項A:q.o[0]||'', 選項B:q.o[1]||'', 選項C:q.o[2]||'', 選項D:q.o[3]||'', 答案:LETTERS[q.a], 解析:q.e }))); const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, '題庫'); X.writeFile(wb, 'fanjin-questions.xlsx'); } catch(err){ alert('無法載入 Excel 元件（需要網路）：' + err.message); } };
+  $('#tReset').onclick = () => { if (confirm('確定還原為內建的 40 題預設題庫？目前的修改會消失。')){ QBANK = DEFAULT_QUESTIONS.map(normQuestion); bankChanged(); openTeacher(); } };
+}
+function editQuestion(i){
+  tEditing = i; const q = i >= 0 ? QBANK[i] : { cat: tFilter || CATS[0], q:'', o:['','','',''], a:0, e:'' };
+  const ed = $('#tEditor'); show(ed);
+  ed.innerHTML = `
+    <div class="kai text-xl mb-2">${i >= 0 ? `編輯第 ${i+1} 題` : '新增題目'}</div>
+    <div class="grid gap-2">
+      <label class="text-sm">分類 <input type="text" id="eCat" list="eCats" class="w-full" value="${esc(q.cat)}"><datalist id="eCats">${CATS.map(c => `<option value="${c}">`).join('')}</datalist></label>
+      <label class="text-sm">題目 <textarea id="eQ" rows="2" class="w-full">${esc(q.q)}</textarea></label>
+      ${[0,1,2,3].map(k => `<label class="text-sm flex items-center gap-2"><input type="radio" name="eA" value="${k}" ${q.a===k?'checked':''}> 選項${LETTERS[k]}${k>=2?'（可留空）':''} <input type="text" id="eO${k}" class="flex-1" value="${esc(q.o[k] || '')}"></label>`).join('')}
+      <div class="text-xs opacity-60">點選左側圓鈕標示正確答案。只填 A、B 兩個選項即成為二選一（如是非題）。</div>
+      <label class="text-sm">解析（答完後顯示） <textarea id="eE" rows="2" class="w-full">${esc(q.e)}</textarea></label>
+      <div class="flex gap-2 justify-end"><button class="btn-ink" id="eCancel">取消</button><button class="btn-seal" id="eSave">儲存</button></div>
+    </div>`;
+  ed.scrollIntoView({ behavior:'smooth', block:'start' });
+  $('#eCancel').onclick = () => hide(ed);
+  $('#eSave').onclick = () => {
+    const raw = [0,1,2,3].map(k => $(`#eO${k}`).value.trim());
+    const a = +($('[name=eA]:checked') || { value:0 }).value;
+    // 去掉空白選項，並重新對應正解索引
+    const keep = raw.map((t, k) => ({ t, k })).filter(x => x.t);
+    const nq = { cat: $('#eCat').value.trim() || '其他', q: $('#eQ').value.trim(), o: keep.map(x => x.t), a: keep.findIndex(x => x.k === a), e: $('#eE').value.trim() };
+    if (!validQuestion(nq)) return alert('請填寫題目、至少兩個選項，並確認正確答案的選項不是空白。');
+    if (tEditing >= 0) QBANK[tEditing] = normQuestion(nq); else QBANK.push(normQuestion(nq));
+    bankChanged(); openTeacher(); toast('已儲存');
+  };
+}
+function rowToQuestion(r){
+  const get = (...ks) => { for (const k of ks) if (r[k] !== undefined && String(r[k]).trim() !== '') return String(r[k]).trim(); return ''; };
+  const o = [get('選項A','A','optionA'), get('選項B','B','optionB'), get('選項C','C','optionC'), get('選項D','D','optionD')];
+  return { cat: get('分類','類別','cat'), q: get('題目','問題','q','question'), o, a: get('答案','正解','answer','a'), e: get('解析','說明','e','explain') };
+}
+function importQuestions(arr){
+  const out = [];
+  (arr || []).forEach(x => {
+    if (!x) return;
+    let o = (x.o || x.options || []).map(s => String(s ?? '').trim());
+    let a = x.a ?? x.answer;
+    // 答案可為 A–D、1–4 或 0 起算的索引
+    if (typeof a === 'string'){ const s = a.trim().toUpperCase(); a = 'ABCD'.includes(s) && s ? 'ABCD'.indexOf(s) : (parseInt(s) - 1); }
+    else if (typeof a === 'number' && x.o === undefined && x.options === undefined) a = a - 1;
+    const keep = o.map((t, k) => ({ t, k })).filter(z => z.t);
+    const q = { cat: x.cat || x.category || '其他', q: x.q || x.question || '', o: keep.map(z => z.t), a: keep.findIndex(z => z.k === a), e: x.e || x.explain || '' };
+    if (validQuestion(q)) out.push(normQuestion(q));
+  });
+  if (!out.length) return alert('沒有讀到有效題目。請確認格式（題目、至少兩個選項、正確答案）。');
+  const replace = confirm(`讀到 ${out.length} 題有效題目。\n按「確定」＝取代現有題庫；按「取消」＝附加到現有題庫。`);
+  QBANK = replace ? out : QBANK.concat(out); bankChanged(); openTeacher(); toast(`已匯入 ${out.length} 題`);
+}
+function bankChanged(){ saveBank(); if (G) G.qdeck = null; }
+function download(name, text, type){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  const urls = ['https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
+  return urls.reduce((p, u) => p.catch(() => new Promise((res, rej) => { const s = document.createElement('script'); s.src = u; s.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error('載入失敗')); s.onerror = () => rej(new Error('載入失敗')); document.head.appendChild(s); })), Promise.reject());
+}
+
+/* =====================================================================
+   十一、啟動與事件綁定
+   ===================================================================== */
+function goTitle(){
+  show('#btnResume', STORE.get('save', null) ? 'block' : 'none');
+  showScreen('scrTitle');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-open]'); if (!b) return;
+  ({ rules:openRules, settings:openSettings, teacher:openTeacher })[b.dataset.open]();
+});
+$('#btnNew').onclick = () => { renderSetup(); showScreen('scrSetup'); };
+$('#btnResume').onclick = resumeGame;
+$('#btnSetupBack').onclick = goTitle;
+$$('#pCountBtns button').forEach(b => b.onclick = () => { setupCfg.n = +b.dataset.n; renderSetup(); });
+$('#selTime').onchange = e => { setupCfg.time = e.target.value; $('#inpTimeCustom').style.display = e.target.value === 'custom' ? 'block' : 'none'; };
+$('#btnStart').onclick = () => startGame(readSetup());
+$('#btnRoll').onclick = onRoll;
+$('#btnMode').onclick = toggleMode;
+$('#btnBgm').onclick = () => { SND.cfg.bgmOn = !SND.cfg.bgmOn; SND.save(); SND.unlock(); SND.syncBgm(); refreshAudioUI(); toast(SND.cfg.bgmOn ? '背景音樂：開' : '背景音樂：關', 1200); };
+$('#btnSfx').onclick = () => { SND.cfg.sfxOn = !SND.cfg.sfxOn; SND.save(); refreshAudioUI(); toast(SND.cfg.sfxOn ? '音效：開' : '音效：關', 1200); };
+$('#btnEnd').onclick = async () => {
+  if (!G || G.over) return; if (busy) return toast('請先完成這一步，再結算');
+  const v = await openModal({ title:'要現在放榜嗎？', badge:'榜', html:'<p class="kai text-lg">將結束本局並依聲望排名。</p>', buttons:[{ label:'再玩一下', value:0, cls:'btn-ink' }, { label:'放榜！', value:1 }] });
+  if (v) endGame();
+};
+$('#btnHome').onclick = () => { G = null; goTitle(); };
+$('#btnAgain').onclick = () => startGame(G ? G.cfg : readSetup());
+$('#sheetLayer').addEventListener('click', e => { if (e.target.id === 'sheetLayer') closeSheet(); });
+new ResizeObserver(() => { R && R.resize(); }).observe($('#boardHost'));
+window.addEventListener('keydown', e => { if ((e.code === 'Space' || e.key === 'Enter') && $('#scrGame').style.display === 'flex' && $('#modalLayer').style.display !== 'flex' && $('#sheetLayer').style.display !== 'flex' && !busy) { e.preventDefault(); onRoll(); } });
+
+SND.init(); refreshAudioUI(); goTitle();
+
+// 測試／除錯用介面
+window.FJ = { get G(){ return G; }, get R(){ return R; }, get busy(){ return busy; }, startGame, endGame, toggleMode, mountRenderer };
+</script>
+</body>
+</html>
