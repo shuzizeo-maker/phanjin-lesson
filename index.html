@@ -233,6 +233,39 @@
     #toast, .floater{ display:none !important }
     #certImg{ visibility:visible !important; position:fixed; left:0; top:0; width:100vw; height:auto; border:none !important; box-shadow:none !important; border-radius:0 !important }
   }
+
+  /* ===== 第五版：產業標記、手牌、被攻擊晃動 ===== */
+  .t2d .pp{position:absolute; left:4%; bottom:3%; z-index:2; font-size:calc(var(--u)*.11); line-height:1; padding:2px 4px; border-radius:6px; background:rgba(184,137,59,.18); color:#7a5420; border:1px dashed #b8893b; white-space:nowrap}
+  .t2d .pp.owned{left:0; right:0; bottom:0; border:none; border-radius:0; padding:3px 2px; display:flex; align-items:center; justify-content:center; gap:3px; color:#fff; background:var(--oc)}
+  .t2d .pp.owned i{font-style:normal; display:inline-grid; place-items:center; width:1.35em; height:1.35em; border-radius:50%; background:#fff; color:var(--oc); font-weight:700}
+  .t2d.isprop.owned{border-width:3px; border-color:var(--oc)}
+  #handRow{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:8px}
+  .hand-card{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-height:58px; padding:4px 2px; border-radius:10px; border:2px solid var(--kc); background:linear-gradient(#fffaf0,#f3e7cc); color:#2a211b; font-family:"LXGW WenKai TC",serif; box-shadow:0 2px 3px rgba(60,40,20,.2); cursor:pointer; transition:transform .15s}
+  .hand-card:hover{transform:translateY(-2px)}
+  .hand-card .hi{font-size:1.25rem; line-height:1}
+  .hand-card .hn{font-size:.82rem; line-height:1.1; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hand-card .hc{font-size:.72rem; color:var(--kc)}
+  .hand-card.poor{opacity:.6}
+  .hand-card.empty{border:2px dashed rgba(90,60,30,.25); background:transparent; box-shadow:none; color:rgba(90,60,30,.4); cursor:default; font-size:.85rem}
+  .mini-p .mcol{display:flex; flex-direction:column; align-items:flex-start; line-height:1.05; min-width:0}
+  .mini-p .sv{font-size:12px; opacity:.85; white-space:nowrap}
+  .econ{display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font-size:13px; font-family:"LXGW WenKai TC",serif; opacity:.9}
+  .hit{animation:hitshake .6s ease 1}
+  @keyframes hitshake{0%,100%{transform:none} 15%{transform:translateX(-6px) rotate(-1deg)} 30%{transform:translateX(6px) rotate(1deg)} 45%{transform:translateX(-4px)} 60%{transform:translateX(4px)} 75%{transform:translateX(-2px)}}
+  .pcard.hit,.mini-p.hit{box-shadow:0 0 0 3px rgba(178,58,42,.55)}
+  @media (max-width:600px) and (orientation:portrait){
+    #handRow{gap:5px; margin-top:6px}
+    .mini-p{min-width:0; gap:4px; padding:3px 5px}
+    #miniBar .mini-p .nm{display:none} /* 手機直式：只留棋子、功名、銀兩、聲望 */
+    #miniBar .mini-p{flex-wrap:wrap; row-gap:1px}
+    #miniBar .mini-p .mcol{order:3; flex:1 0 100%; flex-direction:row; align-items:center; gap:4px}
+    #miniBar .mini-p .sv, #miniBar .mini-p .mcol > span{font-size:14px !important}
+    .hand-card{min-height:46px; flex-direction:row; gap:4px; padding:3px 4px}
+    .hand-card .hi{font-size:1.05rem}
+    .hand-card .hc{display:none}
+    .hand-card .hn{font-size:14px}
+  }
+  @media (max-height:500px) and (orientation:landscape){ .hand-card{min-height:42px} }
   .brush-underline{background:linear-gradient(transparent 70%, rgba(178,58,42,.25) 70%)}
 </style>
 </head>
@@ -360,9 +393,12 @@
             <div class="text-xs opacity-60" id="curRound">第 1 輪</div>
             <div class="kai text-xl truncate" id="curName">—</div>
           </div>
+          <span id="curSilver" class="chip neu kai" title="銀兩">💰 0</span>
           <span id="curRank" class="chip neu kai"></span>
         </div>
         <button id="btnRoll" class="btn-seal w-full mt-3 text-2xl" data-testid="btn-roll">🎲 擲骰子</button>
+        <!-- 第五版：你的手牌（最多 3 張；點一下看說明、輪到你時可打出） -->
+        <div id="handRow" data-testid="hand-row"></div>
         <div id="hintLine" class="text-xs opacity-60 mt-2 text-center">輪到你了！擲骰前進，停在哪一格就要答題或抽卡。</div>
       </div>
       <!-- 胡屠戶臉色 -->
@@ -679,7 +715,8 @@ const WORLD_CARDS = [
    - 落後玩家：答對額外體面 +1；考場答錯可「補考」一次
    - 胡屠戶奉承遞減：被捧越多次加成越少；領先者奉承加成最多 +1
    ===================================================================== */
-function scoreOf(p){ return p.timian + p.renqing + RANKS[p.rank].bonus; }
+// 聲望＝體面＋人情＋功名加分＋銀兩折算（每 5 兩 1 分）＋產業聲望
+function scoreOf(p){ return p.timian + p.renqing + RANKS[p.rank].bonus + (p.silver != null ? Math.floor(p.silver / 5) : 0) + (p.props ? p.props.reduce((s, t) => s + (PROPS[t] ? PROPS[t].rep : 0), 0) : 0); }
 function avgScore(G){ return G.players.reduce((a, p) => a + scoreOf(p), 0) / G.players.length; }
 function lastPlace(G){ return G.players.slice().sort((a, b) => scoreOf(a) - scoreOf(b) || a.timian - b.timian)[0]; }
 function firstPlace(G){ return G.players.slice().sort((a, b) => scoreOf(b) - scoreOf(a) || b.timian - a.timian)[0]; }
@@ -747,6 +784,158 @@ const REFLECTIONS = [
 <script>
 'use strict';
 /* =====================================================================
+   五之一、銀兩・產業・手牌（純規則；遊戲畫面與平衡模擬共用）
+   - 銀兩：答對、經過起點、考中功名可得；用來置產、出牌
+   - 產業：停在產業格可購買；別人停到要付「人情錢」；放榜時折算聲望
+   - 手牌：答對抽一張，最多 3 張；出牌要花銀兩，落後者打折
+   - 公平：電腦只攻擊領先者；被攻擊後有一輪保護期
+   ===================================================================== */
+const ECON = {
+  start:10,             // 開局銀兩
+  right:2,              // 答對一題
+  passStart:3,          // 經過起點「應考半生」
+  rankSilver:[0, 4, 10],// 考中秀才／舉人時的賀禮
+  silverPerRep:5,       // 放榜：每 5 兩折 1 聲望
+  handMax:3,            // 手牌上限
+  ownVisit:1            // 停在自己的產業：收 1 兩
+};
+
+/* ---------- 產業格（棋盤格編號 → 產業）；ext＝取材自課文節選以後的原著情節 ---------- */
+const PROPS = {
+  1:  { name:'茅草棚', price:6, rent:2, rep:2, src:'「燙起酒來，在茅草棚下坐著。」', note:'范家貧寒，報喜的馬只能拴在茅草棚上。' },
+  3:  { name:'肉案子', price:7, rent:2, rep:3, src:'「范老爺怕的，莫過於肉案子上胡老爹。」', note:'肉案子是胡屠戶賣肉的攤子，也是他的「行事」。' },
+  12: { name:'集東頭雞攤', price:7, rent:3, rep:3, src:'「直尋到集東頭，見范進抱著雞……」', note:'中舉當天，范進還在集上賣雞換米。' },
+  14: { name:'鄉間田產', price:9, rent:3, rep:4, ext:true, src:'（延伸）原著後文：中舉後有人送田產來奉承。', note:'課文節選未收；中舉前後的境遇，正是世態炎涼。' },
+  16: { name:'廟門口藥攤', price:8, rent:3, rep:3, src:'「借廟門口一個外科郎中跳駝子板凳上坐著。」', note:'范進被打醒後，坐在郎中的板凳上歇息。' },
+  22: { name:'城中店房', price:9, rent:3, rep:4, ext:true, src:'（延伸）原著後文：也有人送店房來巴結。', note:'課文節選未收；看看「錦上添花」的人有多少。' },
+  23: { name:'張鄉紳贈房', price:10, rent:4, rep:5, ext:true, src:'（延伸）原著第三回後文：張鄉紳登門送銀、贈屋。', note:'課文節選未收；鄉紳主動攀交，反映舉人身分的威力。' }
+};
+
+/* ---------- 手牌（攻擊／防禦／輔助）。quote＝課文出處，note＝學習提示 ---------- */
+const CARD_DEFS = {
+  slap:   { name:'胡屠戶一巴掌', kind:'attack', cost:4, icon:'✋', target:true,
+            quote:'「該死的畜生！你中了什麼？」一個嘴巴打將去。', note:'胡屠戶怕打了「文曲星」，手早顫了：全文最有喜感的一幕。',
+            desc:'對手體面 −3' },
+  taunt:  { name:'「現世寶、窮鬼」', kind:'attack', cost:3, icon:'🗯', target:true,
+            quote:'「我自倒運，把個女兒嫁與你這現世寶、窮鬼……」', note:'現世寶：丟人現眼的傢伙。中舉前，胡屠戶就是這樣看女婿。',
+            desc:'對手下一題：限時縮短、多一個干擾選項（電腦答對率 −20%）' },
+  phlegm: { name:'痰迷心竅', kind:'attack', cost:5, icon:'🌀', target:true,
+            quote:'「他只因歡喜很了，痰湧上來，迷了心竅。」', note:'舊時以為大喜大悲會「痰迷心竅」；作者用誇張手法寫范進喜極而瘋。',
+            desc:'對手休息一回合' },
+  borrow: { name:'借銀不還', kind:'attack', cost:3, icon:'🪙', target:true,
+            quote:'「你問我借盤纏，我一天殺一個豬還賺不得錢把銀子……」', note:'錢把銀子：約一錢的銀子，極言其少。胡屠戶借錢時一毛不拔。',
+            desc:'拿走對手最多 4 兩' },
+  scold:  { name:'夾七夾八', kind:'attack', cost:2, icon:'💢', target:true,
+            quote:'「一頓夾七夾八，罵得范進摸門不著。」', note:'夾七夾八：言語雜亂沒有條理。罵人罵到對方摸不著頭緒。',
+            desc:'對手人情 −2' },
+  grandma:{ name:'老太太護著', kind:'defense', cost:2, icon:'🛡', target:false,
+            quote:'「老太太慌了，慌將幾口開水灌了過來。」', note:'兒子一倒下，最先著急的是母親。親情不看功名。',
+            desc:'擋下下一次攻擊。可先打出當護身，或被攻擊時當場使用' },
+  tutor:  { name:'先生指點', kind:'support', cost:1, icon:'📜', target:false, when:'question',
+            quote:'「宗師說我火候已到……」', note:'宗師的一句鼓勵，讓范進決定再進考場。',
+            desc:'答題時使用：刪去一個錯誤選項' },
+  star:   { name:'文曲星下凡', kind:'support', cost:2, icon:'⭐', target:false,
+            quote:'「這些中老爺的，都是天上的文曲星。」', note:'文曲星：主管文運的星宿。胡屠戶前後兩次提到，態度卻完全不同。',
+            desc:'你的下一題答錯時，可以再選一次' },
+  coins:  { name:'些須幾個錢', kind:'support', cost:0, icon:'💰', target:false,
+            quote:'「些須幾個錢，不夠你賞人。」', note:'些須：少許。中舉前一文不借，中舉後主動送錢：前倨後恭。',
+            desc:'立刻得到 4 兩' }
+};
+// 牌庫組成（每輪洗牌）
+const CARD_DECK = [].concat(
+  Array(3).fill('slap'), Array(3).fill('taunt'), Array(2).fill('phlegm'), Array(3).fill('borrow'), Array(3).fill('scold'),
+  Array(4).fill('grandma'), Array(4).fill('tutor'), Array(3).fill('star'), Array(3).fill('coins'));
+const KIND_NAME = { attack:'攻擊', defense:'防禦', support:'輔助' };
+const KIND_COLOR = { attack:'#b23a2a', defense:'#2f4858', support:'#3d6b4f' };
+
+/* ---------- 計價（落後者打折＝公平機制）---------- */
+function cardCost(G, p, id){ return Math.max(0, CARD_DEFS[id].cost - (CATCHUP.isBehind(p, G) ? 1 : 0)); }
+function propPrice(G, p, t){ return Math.max(1, PROPS[t].price - (CATCHUP.isBehind(p, G) ? 2 : 0)); }
+function propRent(G, payer, t){ const r = PROPS[t].rent; return CATCHUP.isBehind(payer, G) ? Math.ceil(r / 2) : r; }
+function ownerOf(G, t){ return G.players.find(p => p.props.includes(+t)) || null; }
+function propRepOf(p){ return p.props.reduce((s, t) => s + (PROPS[t] ? PROPS[t].rep : 0), 0); }
+function silverRepOf(p){ return Math.floor(p.silver / ECON.silverPerRep); }
+
+/* ---------- 抽牌 ---------- */
+function drawHand(G, p){
+  if (p.hand.length >= ECON.handMax) return null;
+  if (!G.cardDeck || !G.cardDeck.length) G.cardDeck = shuffle(CARD_DECK);
+  const id = G.cardDeck.pop(); p.hand.push(id); return id;
+}
+function takeFromHand(p, id){ const k = p.hand.indexOf(id); if (k >= 0) p.hand.splice(k, 1); }
+
+/* ---------- 保護期：被攻擊後一整輪內不能再被攻擊 ---------- */
+function canTarget(G, t){ return !(t.immuneUntil > G.turnNo); }
+function validTargets(G, u){ return G.players.filter(x => x !== u && canTarget(G, x)); }
+
+/* ---------- 攻擊效果（不含護身判定）；回傳說明與數值 ---------- */
+function attackEffect(G, u, t, id){
+  switch (id){
+    case 'slap':   { const v = Math.min(3, t.timian); t.timian -= v; return { msg:`${t.name} 挨了一巴掌，體面 −${v}`, chips:[[`體面 −${v}`, false]] }; }
+    case 'taunt':  t.taunt = 1; return { msg:`${t.name} 被嘲諷「現世寶、窮鬼」，下一題更難答`, chips:[['下一題變難', false]] };
+    case 'phlegm': t.skip += 1; return { msg:`${t.name} 痰迷心竅，休息一回合`, chips:[['休息一回合', false]] };
+    case 'borrow': { const v = Math.min(4, t.silver); t.silver -= v; u.silver += v; return { msg:`${u.name} 向 ${t.name} 借了 ${v} 兩，說好不還`, chips:[[`銀兩 −${v}`, false]] }; }
+    case 'scold':  { const v = Math.min(2, t.renqing); t.renqing -= v; return { msg:`${t.name} 被罵得摸門不著，人情 −${v}`, chips:[[`人情 −${v}`, false]] }; }
+  }
+  return { msg:'', chips:[] };
+}
+// 非攻擊卡的效果
+function supportEffect(G, u, id){
+  switch (id){
+    case 'grandma': u.shield = 1; return { msg:`${u.name} 有老太太護著：下一次攻擊會被擋下`, chips:[['🛡 護身', true]] };
+    case 'star':    u.retryNext = 1; return { msg:`${u.name} 得文曲星保佑：下一題答錯可再選一次`, chips:[['⭐ 再選一次', true]] };
+    case 'coins':   u.silver += 4; return { msg:`${u.name} 收到些須幾個錢：銀兩 +4`, chips:[['銀兩 +4', true]] };
+  }
+  return { msg:'', chips:[] };
+}
+
+/* ---------- 電腦的出牌、置產、護身決策（依個性與難度）---------- */
+const AI_CARD_STYLE = {
+  kind:   { attack:0.25, fav:['scold','taunt','slap'],  reserve:4 },  // 魏好古：少攻擊、愛護身
+  follow: { attack:0.50, fav:['slap','scold','taunt','borrow'], reserve:2 }, // 集上高鄰：跟著打領先者
+  calc:   { attack:0.60, fav:['borrow','phlegm','slap'], reserve:3 }  // 跳駝子郎中：算計划不划算
+};
+const AI_DIFF_F = { easy:0.55, normal:0.8, hard:1 };
+function aiStyle(p){ return (AI_PERSONAS[p.persona] || {}).style || 'calc'; }
+// 誰是可以攻擊的「領先者」：聲望最高、沒有落後、不在保護期，且分數不低於自己太多
+function leaderTarget(G, p){
+  const others = G.players.filter(x => x !== p);
+  const lead = others.slice().sort((a, b) => scoreOf(b) - scoreOf(a))[0];
+  if (!lead || !canTarget(G, lead) || CATCHUP.isBehind(lead, G) || scoreOf(lead) < scoreOf(p) - 2) return null;
+  return lead;
+}
+function aiPickCard(G, p){
+  const S = AI_CARD_STYLE[aiStyle(p)], f = AI_DIFF_F[(G.cfg && G.cfg.diff) || 'normal'] || 0.8;
+  const afford = p.hand.filter(id => CARD_DEFS[id].when !== 'question' && cardCost(G, p, id) <= p.silver);
+  if (!afford.length) return null;
+  if (afford.includes('coins') && (p.silver < 6 || p.hand.length >= ECON.handMax)) return { id:'coins' };
+  const atks = afford.filter(id => CARD_DEFS[id].kind === 'attack');
+  const lead = leaderTarget(G, p);
+  if (atks.length && lead && Math.random() < S.attack * f){
+    let id = null;
+    if (aiStyle(p) === 'calc'){
+      if (atks.includes('borrow') && lead.silver >= 4) id = 'borrow';
+      else if (atks.includes('phlegm') && scoreOf(lead) - scoreOf(p) >= 4) id = 'phlegm';
+    }
+    if (!id) id = S.fav.find(x => atks.includes(x)) || atks[0];
+    return { id, target:lead };
+  }
+  if (afford.includes('grandma') && !p.shield && (aiStyle(p) === 'kind' ? 0.7 : 0.25) * f > Math.random()) return { id:'grandma' };
+  if (afford.includes('star') && !p.retryNext && Math.random() < 0.5 * f) return { id:'star' };
+  return null;
+}
+function aiWantsBuy(G, p, t){
+  const S = AI_CARD_STYLE[aiStyle(p)], price = propPrice(G, p, t);
+  if (p.silver - price < S.reserve) return false;
+  return Math.random() < ({ easy:0.7, normal:0.9, hard:1 }[(G.cfg && G.cfg.diff) || 'normal'] || 0.9);
+}
+function aiUseShield(G, p){ return p.hand.includes('grandma') && cardCost(G, p, 'grandma') <= p.silver; }
+function aiUseTutor(G, p){ return p.hand.includes('tutor') && cardCost(G, p, 'tutor') <= p.silver && Math.random() < 0.7 * (AI_DIFF_F[(G.cfg && G.cfg.diff) || 'normal'] || 0.8); }
+</script>
+
+<script>
+'use strict';
+/* =====================================================================
    二、共用工具、儲存、音訊
    ===================================================================== */
 const $ = (s, root=document) => root.querySelector(s);
@@ -761,7 +950,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms * SPEED));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rand = n => Math.floor(Math.random() * n);
 const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=rand(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
-const LETTERS = ['A','B','C','D'];
+const LETTERS = ['A','B','C','D','E']; // E：被嘲諷時多出的干擾選項
 const PCOLORS = [ {c:'#b23a2a', n:'朱'}, {c:'#2f4858', n:'黛'}, {c:'#3d6b4f', n:'松'}, {c:'#a87b2c', n:'金'} ];
 
 /* ---------- localStorage ---------- */
@@ -886,6 +1075,8 @@ const SND = {
         case 'coin': this.bell(1568, 0, 0.10, 0.35); this.bell(2093, 0.07, 0.08, 0.4); break;
         case 'down': this.tock(300, 0, 0.16, 0.18); break;
         case 'card': this.pluck(P.A4, 0, 0.22, 0.9); break;
+        case 'slap': this.tock(210, 0, 0.2, 0.14); this.tock(150, 0.06, 0.12, 0.12); break; // 輕柔的「啪」
+        case 'shield': this.bell(987.77, 0, 0.08, 0.5); this.pluck(P.D5, 0.08, 0.2, 1.2); break;
         case 'rank': [P.D5,P.E5,P.Fs5,P.A5,P.B5,P.D6].forEach((f,i)=> this.pluck(f, i*0.09, 0.28, 1.6)); break;
         case 'turn': this.bell(1174.66, 0, 0.06, 0.4); break;
         case 'end': [P.D4,P.Fs4,P.A4,P.D5,P.A4,P.D5].forEach((f,i)=> this.pluck(f, i*0.16, 0.3, 1.8)); break;
@@ -936,7 +1127,8 @@ const R2D = {
       const el = document.createElement('div'); const rc = tileRC(i); const st = TYPE_STYLE[t.type];
       el.className = 't2d' + (isCorner(i) ? ' corner' : ''); el.style.gridRow = (rc.r+1); el.style.gridColumn = (rc.c+1);
       el.style.setProperty('--tc', st.color); el.dataset.idx = i;
-      el.innerHTML = `<div class="tb">${st.badge}${t.ext?'·延伸':''}</div><div class="tn">${esc(shortName(t))}</div><div class="ti">${i}</div>`;
+      el.innerHTML = `<div class="tb">${st.badge}${t.ext?'·延伸':''}</div><div class="tn">${esc(shortName(t))}</div><div class="ti">${i}</div>${PROPS[i] ? '<div class="pp"></div>' : ''}`;
+      if (PROPS[i]) el.classList.add('isprop');
       el.addEventListener('click', () => opts.onTileClick && opts.onTileClick(i));
       b.appendChild(el); return el;
     });
@@ -1004,7 +1196,7 @@ const R2D = {
       if (!anim) { void t.offsetWidth; t.style.transition = ''; } });
   },
   sync(G){
-    this.G = G; this.placeAll(false);
+    this.G = G; this.placeAll(false); this.syncOwners(G);
     this.toks.forEach((t, i) => t.classList.toggle('cur', i === G.cur));
     this.follow(G.cur);
   },
@@ -1022,6 +1214,15 @@ const R2D = {
     this.cube.style.transitionDuration = (1.0*SPEED) + 's';
     this.cube.style.transform = `rotateX(${bx}deg) rotateY(${by}deg)`;
     await sleep(1050);
+  },
+  // 產業標記：未售出顯示價錢；已售出顯示主人顏色與棋子
+  syncOwners(G){
+    Object.keys(PROPS).forEach(k => {
+      const el = this.tileEls[k]; if (!el) return; const pp = el.querySelector('.pp'), o = ownerOf(G, k);
+      el.classList.toggle('owned', !!o);
+      if (o){ el.style.setProperty('--oc', o.color); pp.className = 'pp owned'; pp.innerHTML = `<i>${esc(o.tok)}</i>${esc(o.name.slice(0, 3))}`; }
+      else { pp.className = 'pp'; pp.textContent = `🏠${PROPS[k].price}兩`; }
+    });
   },
   focusTile(i){ const el = this.tileEls[i]; el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); },
   setMessage(txt){ const m = $('#msg2d', this.board); if (m) m.textContent = txt; },
@@ -1243,6 +1444,30 @@ const R3D = {
   sync(G){
     this.G = G;
     G.players.forEach((p, i) => { const xz = this.tokXZ(i, p.pos); this.toks[i].position.set(xz.x, this.baseY, xz.z); });
+    this.syncOwners(G);
+  },
+  // 產業標記：未售出放一枚金元寶色的錢幣；已售出插上主人顏色的小旗
+  syncOwners(G){
+    const T = this.T; if (!T || !this.scene) return;
+    const key = Object.keys(PROPS).map(k => { const o = ownerOf(G, k); return o ? G.players.indexOf(o) : '-'; }).join(',');
+    if (this.ownG && this.ownG.parent === this.scene && this.ownKey === key) return;
+    if (this.ownG){ this.scene.remove(this.ownG); this.ownG.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+    const g = this.ownG = new T.Group(); this.ownKey = key; this.scene.add(g);
+    Object.keys(PROPS).forEach(k => {
+      const p = this.pos(+k), o = ownerOf(G, k), x = p.x - 0.33, z = p.z + 0.33;
+      if (!o){
+        const coin = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.035, 20), new T.MeshStandardMaterial({ color:0xd4a640, metalness:0.6, roughness:0.35 }));
+        coin.position.set(x, 0.18, z); coin.castShadow = true; g.add(coin);
+      } else {
+        const col = new T.Color(o.color);
+        const pole = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 0.5, 8), new T.MeshStandardMaterial({ color:0x3b2a1e }));
+        pole.position.set(x, 0.41, z); pole.castShadow = true; g.add(pole);
+        const flag = new T.Mesh(new T.BoxGeometry(0.24, 0.15, 0.02), new T.MeshStandardMaterial({ color:col, roughness:0.6 }));
+        flag.position.set(x + 0.13, 0.58, z); flag.castShadow = true; g.add(flag);
+        const base = new T.Mesh(new T.CylinderGeometry(0.06, 0.07, 0.04, 14), new T.MeshStandardMaterial({ color:col }));
+        base.position.set(x, 0.18, z); g.add(base);
+      }
+    });
   },
   async moveStep(pi, pos){
     const m = this.toks[pi], from = m.position.clone(), xz = this.tokXZ(pi, pos); this.moving = true;
@@ -1291,12 +1516,14 @@ let switching = false;
 
 function newState(cfg){
   return {
-    v:2, cfg, cur:0, round:1, over:false, timeUp:false, extra:false, maxRounds: cfg.rounds || 0,
+    v:3, cfg, cur:0, round:1, turnNo:0, cardDeck:null, playedThisTurn:false, over:false, timeUp:false, extra:false, maxRounds: cfg.rounds || 0,
     timeLimit: cfg.minutes * 60, remain: cfg.minutes * 60, qTime: cfg.qTime, view: cfg.mode === '2d' ? '2d' : '3d',
     players: cfg.players.map((pl, i) => ({
       name: pl.name, tok: pl.tok, color: PCOLORS[i].c, pos:0, timian:5, renqing:3, rank:0, skip:0, freeHint:0, moodKey:'scorn',
       isAI: !!pl.isAI, persona: pl.persona == null ? -1 : pl.persona, turns:0,
-      stats:{ right:0, wrong:0, scold:0, flatter:0, snow:0, brocade:0 }
+      // 第五版：銀兩、產業、手牌、護身、保護期、嘲諷、文曲星
+      silver: ECON.start, props:[], hand:[], shield:0, immuneUntil:-1, taunt:0, retryNext:0,
+      stats:{ right:0, wrong:0, scold:0, flatter:0, snow:0, brocade:0, atk:0, hit:0, blocked:0, cards:0 }
     })),
     qdeck:null, fateDeck:null, worldDeck:null, log:[]
   };
@@ -1379,6 +1606,7 @@ function applyEffect(p, eff){
   if (eff.target && eff.td) add(eff.target, eff.td, eff.target.name);
   if (eff.rank != null && eff.rank > p.rank){
     p.rank = eff.rank; chips.push(chip(`功名：${RANKS[p.rank].name}！`, true));
+    const rs = ECON.rankSilver[p.rank] || 0; if (rs){ p.silver += rs; chips.push(chip(`賀禮銀兩 +${rs}`, true)); }
     log(`🎉 ${pTag(p)} 考中<b>${RANKS[p.rank].name}</b>！`); setTimeout(() => SND.play('rank'), 350);
   }
   if (eff.skip){ p.skip += eff.skip; chips.push(chip('休息一回合', false)); neg++; }
@@ -1401,7 +1629,7 @@ function checkMoods(){
 async function startTurn(){
   if (!G || G.over) return;
   updateUI(); R && R.sync(G);
-  const p = curP();
+  const p = curP(); G.playedThisTurn = false; postPhaseResolve = null;
   if (p.skip > 0){
     p.skip--; busy = true; setRoll(false);
     const pr = openModal({ title:`${p.name} 休息一回合`, badge:'瘋', html:'<p class="kai text-lg">還在昏昏沉沉，「如在夢裡一般」……這回合先歇著。</p>', buttons:[{ label:'下一位 ▶', value:1 }] });
@@ -1417,15 +1645,22 @@ async function startTurn(){
     setMsg(`${p.name}：「${aiLine(p)}」`);
     const g0 = G; await sleep(900);
     while (G === g0 && !G.over && (switching || !R || busy || document.hidden || $('#sheetLayer').style.display === 'flex')) await sleep(300);
+    // 電腦擲骰前：依個性與難度決定要不要出牌（攻擊只挑領先者、不欺負落後者）
+    if (G === g0 && !G.over && curP() === p){
+      const plan = aiPickCard(G, p);
+      if (plan){ await playCardFlow(p, plan.id, plan.target); await sleep(300); }
+      while (G === g0 && !G.over && (switching || !R || busy || document.hidden || $('#sheetLayer').style.display === 'flex')) await sleep(300);
+    }
     if (G === g0 && !G.over && curP() === p) onRoll(true);
     return;
   }
   setRoll(true);
-  setMsg(`輪到你了，${p.name}，請擲骰子。`);
+  setMsg(p.hand.length ? `輪到你了，${p.name}：可先出手牌，或直接擲骰子。` : `輪到你了，${p.name}，請擲骰子。`);
 }
 function endTurn(){
   if (!G || G.over) return;
   if (G.timeUp) return endGame('time');
+  G.turnNo = (G.turnNo || 0) + 1;
   if (G.extra){ G.extra = false; save(); toast(`${curP().name} 再擲一次！`); return startTurn(); }
   G.cur = (G.cur + 1) % G.players.length;
   if (G.cur === 0){
@@ -1435,6 +1670,7 @@ function endTurn(){
   save(); startTurn();
 }
 async function onRoll(fromAI){
+  if (postPhaseResolve && fromAI !== true){ const r = postPhaseResolve; postPhaseResolve = null; setRoll(false); return r(); } // 「結束回合」
   if (busy || switching || !G || G.over || !R) return;
   if (fromAI !== true && isAI(curP())) return; // 電腦回合不能代擲
   busy = true; setRoll(false, isAI(curP()) ? `🤖 ${curP().name} 的回合…` : null);
@@ -1444,8 +1680,9 @@ async function onRoll(fromAI){
     log(`${pTag(p)} 擲出 <b>${v}</b> 點`); setMsg(`${p.name} 擲出 ${v} 點`);
     await movePlayer(G.cur, v);
     await resolveTile(G.cur, 0);
+    if (!G.over) await humanPostPhase();
   } catch(e){ console.error(e); }
-  busy = false; endTurn();
+  busy = false; postPhaseResolve = null; endTurn();
 }
 async function movePlayer(pi, steps, triggers=true){
   const p = G.players[pi], dir = steps < 0 ? -1 : 1, n = Math.abs(steps);
@@ -1453,7 +1690,7 @@ async function movePlayer(pi, steps, triggers=true){
     p.pos = (p.pos + dir + N_TILES) % N_TILES;
     await R.moveStep(pi, p.pos); SND.play('step');
     if (dir > 0 && p.pos === 0){ // 經過起點
-      applyEffect(p, { d:{ renqing:1 } }); toast(`${p.name} 經過「應考半生」：又熬過一年，人情 +1`);
+      p.silver += ECON.passStart; applyEffect(p, { d:{ renqing:1 } }); toast(`${p.name} 經過「應考半生」：又熬過一年，人情 +1、銀兩 +${ECON.passStart}`);
     }
     const t = TILES[p.pos];
     if (triggers && dir > 0 && s < n && t.type === 'exam' && t.eligible(p)){
@@ -1493,6 +1730,175 @@ async function resolveTile(pi, depth){
   }
   if (t.type === 'exam') return void await takeExam(p, t, t.name, t.story);
   await askQuestion({ p, tile:t, title:t.name, sub:t.story, effectFn: ok => t.effect(p, ok) });
+  if (PROPS[p.pos] && !G.over) await propertyFlow(p); // 產業格：置產或付人情錢
+}
+
+
+/* =====================================================================
+   六之一、手牌、攻擊／防禦、產業（畫面流程）
+   ===================================================================== */
+let postPhaseResolve = null; // 學生擲骰後的「出牌或結束回合」階段
+const humanTurnNow = () => G && !G.over && !isAI(curP());
+function canPlayNow(p, id){
+  const c = CARD_DEFS[id];
+  if (c.when === 'question') return false;
+  if (cardCost(G, p, id) > p.silver) return false;
+  if (c.target && !validTargets(G, p).length) return false;
+  if (id === 'grandma' && p.shield) return false;
+  return true;
+}
+const hasPlayableNow = p => p.hand.some(id => canPlayNow(p, id));
+// 被攻擊的視覺效果：玩家卡晃動、浮動數字、棋盤上那一格閃一下
+function hitFx(t, label){
+  const i = G.players.indexOf(t);
+  [$(`#pcard${i}`), $(`#mini${i}`)].forEach(el => { if (!el) return; el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); });
+  const card = $(`#pcard${i}`) || $(`#mini${i}`); if (card && label) floater(label, card, '#b23a2a');
+  if (R && R.focusTile) R.focusTile(t.pos);
+}
+function cardFaceHTML(id, u){
+  const c = CARD_DEFS[id], col = KIND_COLOR[c.kind];
+  return `<div class="card-face flip-in mt-3" style="--tc:${col}">
+      <div class="ctype">${KIND_NAME[c.kind]}卡</div>
+      <div class="flex items-center gap-2 mt-2"><span class="text-3xl">${c.icon}</span><div class="kai text-2xl flex-1">${esc(c.name)}</div>
+        <span class="chip neu kai">${u ? cardCost(G, u, id) : c.cost} 兩</span></div>
+      <div class="kai text-lg mt-1" style="color:${col}">${esc(c.desc)}</div>
+      <div class="kai text-base mt-2 leading-relaxed">📖 ${esc(c.quote)}</div>
+      <div class="text-sm mt-1 opacity-75">💡 ${esc(c.note)}</div>
+    </div>`;
+}
+// 學生被攻擊、手上有「老太太護著」時：要不要當場擋下？
+function askShield(u, t, id){
+  const cost = cardCost(G, t, 'grandma');
+  return openModal({ title:`${u.name} 對你出手了！`, badge:'⚔', html:`${cardFaceHTML(id, u)}
+      <p class="kai text-lg mt-3">你手上有「🛡 老太太護著」，要花 ${cost} 兩當場擋下嗎？</p>`,
+    buttons:[{ label:'不擋，承受', value:0, cls:'btn-ink text-lg' }, { label:`🛡 擋下（${cost} 兩）`, value:1 }] });
+}
+// 出牌：扣銀兩、判定護身、套用效果、顯示動畫與紀錄
+async function playCardFlow(u, id, t){
+  const c = CARD_DEFS[id], cost = cardCost(G, u, id);
+  if (!G || G.over || u.silver < cost || !u.hand.includes(id)) return false;
+  busy = true; G.playedThisTurn = true;
+  u.silver -= cost; takeFromHand(u, id); u.stats.cards = (u.stats.cards || 0) + 1; SND.play('card'); updateUI();
+  let result, blocked = null;
+  if (c.kind !== 'attack'){
+    result = supportEffect(G, u, id);
+    log(`🃏 ${pTag(u)} 打出「${esc(c.name)}」（${cost} 兩）`);
+  } else {
+    u.stats.atk = (u.stats.atk || 0) + 1;
+    log(`⚔️ ${pTag(u)} 對 ${pTag(t)} 打出「${esc(c.name)}」（${cost} 兩）`);
+    if (t.shield){ t.shield = 0; blocked = 'shield'; }
+    else if (t.hand.includes('grandma') && cardCost(G, t, 'grandma') <= t.silver){
+      const use = isAI(t) ? aiUseShield(G, t) : !!(await askShield(u, t, id));
+      if (use){ t.silver -= cardCost(G, t, 'grandma'); takeFromHand(t, 'grandma'); blocked = 'hand'; }
+    }
+    if (blocked){
+      t.stats.blocked = (t.stats.blocked || 0) + 1; SND.play('shield');
+      result = { msg:`${t.name} 有老太太護著，擋下了「${c.name}」！`, chips:[['🛡 擋下', true]] };
+      log(`🛡 ${pTag(t)} 擋下了攻擊`);
+    } else {
+      result = attackEffect(G, u, t, id); t.stats.hit = (t.stats.hit || 0) + 1;
+      t.immuneUntil = G.turnNo + G.players.length; // 保護期：一整輪內不會再被攻擊
+      SND.play('slap'); hitFx(t, (result.chips[0] || [''])[0]);
+      log(`💥 ${esc(result.msg)}（${esc(t.name)} 獲得一輪保護期）`);
+    }
+  }
+  setMsg(result.msg); checkMoods(); updateUI(); R && R.sync(G); save();
+  const head = c.kind === 'attack'
+    ? `<div class="flex items-center gap-2 kai text-xl flex-wrap"><span class="ptok" style="background:${u.color}">${esc(u.tok)}</span>${esc(u.name)}
+        <span class="text-zhu">⚔ →</span><span class="ptok" style="background:${t.color}">${esc(t.tok)}</span>${esc(t.name)}</div>`
+    : `<div class="flex items-center gap-2 kai text-xl"><span class="ptok" style="background:${u.color}">${esc(u.tok)}</span>${esc(u.name)} 打出手牌</div>`;
+  const pr = openModal({ title: c.kind === 'attack' ? (blocked ? '攻擊被擋下！' : '攻擊！') : '出牌', badge:c.icon, color:KIND_COLOR[c.kind],
+    html:`${head}${cardFaceHTML(id, null)}<div class="mt-3 kai text-lg ${blocked || c.kind !== 'attack' ? '' : 'text-zhu'}">${esc(result.msg)}</div>
+      <div class="mt-2 flex flex-wrap gap-1">${result.chips.map(x => chip(x[0], x[1])).join(' ')}</div>
+      ${c.kind === 'attack' && !blocked ? `<div class="text-sm opacity-70 mt-2 kai">⏳ ${esc(t.name)} 獲得保護期：一整輪內不會再被攻擊。</div>` : ''}`,
+    buttons:[{ label:'繼續 ▶', value:1 }] });
+  if (isAI(u) || isAI(t || u)) autoClick($('#mBtns button'), c.kind === 'attack' && t && !isAI(t) ? 5 : 3);
+  await pr;
+  busy = false; return true;
+}
+// 手牌詳情（用說明圖層，任何時候都能看；輪到自己時可以出牌）
+function openHandCard(k){
+  const me = humanP(), id = me.hand[k]; if (!id) return;
+  const c = CARD_DEFS[id];
+  const myTurn = humanTurnNow() && (!busy || postPhaseResolve) && !G.playedThisTurn && $('#modalLayer').style.display !== 'flex';
+  const playable = myTurn && canPlayNow(me, id);
+  let why = '';
+  if (c.when === 'question') why = '這張牌在答題時使用（題目畫面會出現按鈕）。';
+  else if (!humanTurnNow()) why = '輪到你時才能出牌。';
+  else if (G.playedThisTurn) why = '每回合只能出一張牌。';
+  else if (cardCost(G, me, id) > me.silver) why = `銀兩不夠（需要 ${cardCost(G, me, id)} 兩）。`;
+  else if (c.target && !validTargets(G, me).length) why = '所有對手都在保護期，現在不能攻擊。';
+  else if (id === 'grandma' && me.shield) why = '你已經有護身了。';
+  const targets = c.target ? G.players.filter(x => x !== me) : [];
+  openSheet(`<h2 class="kai text-2xl mb-1">🃏 手牌</h2>${cardFaceHTML(id, me)}
+    ${CATCHUP.isBehind(me, G) ? '<div class="chip down kai mt-2">🔥 你落後中：出牌少 1 兩</div>' : ''}
+    ${playable && c.target ? `<div class="kai text-lg mt-4 mb-2">選擇對象：</div><div class="grid gap-2">${targets.map(x => {
+        const ok = canTarget(G, x);
+        return `<button class="btn-ink text-lg flex items-center gap-2 justify-start" data-tg="${G.players.indexOf(x)}" ${ok ? '' : 'disabled style="opacity:.45"'}>
+          <span class="ptok" style="background:${x.color}">${esc(x.tok)}</span>${esc(x.name)}<span class="ml-auto text-base">聲望 ${scoreOf(x)}・💰${x.silver}${x.shield ? '・🛡' : ''}${ok ? '' : '・⏳保護期'}</span></button>`; }).join('')}</div>`
+      : playable ? `<div class="flex justify-end mt-4"><button class="btn-seal text-lg" id="hcPlay" data-testid="hand-play">打出（${cardCost(G, me, id)} 兩）</button></div>`
+      : `<p class="kai text-base mt-4 opacity-80">${esc(why)}</p>`}`);
+  const go = async (tg) => { closeSheet(); await playCardFlow(me, id, tg); if (postPhaseResolve){ const r = postPhaseResolve; postPhaseResolve = null; r(); } else updateTurnButtons(); };
+  $$('#sheetBox [data-tg]').forEach(b => b.onclick = () => go(G.players[+b.dataset.tg]));
+  const pb = $('#hcPlay'); if (pb) pb.onclick = () => go(null);
+}
+function renderHand(){
+  const row = $('#handRow'); if (!row || !G) return;
+  const me = humanP();
+  row.innerHTML = Array.from({ length:ECON.handMax }, (_, k) => {
+    const id = me.hand[k];
+    if (!id) return `<div class="hand-card empty">空</div>`;
+    const c = CARD_DEFS[id], cost = cardCost(G, me, id);
+    return `<button class="hand-card ${cost > me.silver ? 'poor' : ''}" data-hk="${k}" data-testid="hand-card" style="--kc:${KIND_COLOR[c.kind]}" title="${esc(c.desc)}">
+      <span class="hi">${c.icon}</span><span class="hn">${esc(c.name.replace(/[「」]/g, ''))}</span><span class="hc">${cost}兩</span></button>`;
+  }).join('');
+  $$('#handRow [data-hk]').forEach(b => b.onclick = () => openHandCard(+b.dataset.hk));
+}
+function updateTurnButtons(){
+  if (postPhaseResolve) setRoll(true, '✓ 結束回合');
+}
+// 學生擲骰、走完這一格之後：還沒出牌、又有能出的牌 → 可以出牌或直接結束回合
+function humanPostPhase(){
+  const me = curP();
+  if (isAI(me) || G.over || G.playedThisTurn || !hasPlayableNow(me)) return Promise.resolve();
+  return new Promise(res => {
+    postPhaseResolve = res; busy = false;
+    setRoll(true, '✓ 結束回合'); setMsg('要出一張手牌嗎？不出牌就按「結束回合」。');
+    const h = $('#hintLine'); if (h) h.textContent = '🃏 點手牌可以出牌；或按「✓ 結束回合」。';
+  });
+}
+// 產業：置產、收人情錢
+function propModal(p, t, mode){
+  const P = PROPS[t], price = propPrice(G, p, t);
+  const html = `<div class="card-face flip-in mt-2" style="--tc:#b8893b"><div class="ctype">產業${P.ext ? '・延伸' : ''}</div>
+      <div class="kai text-2xl mt-2">🏠 ${esc(P.name)}</div>
+      <div class="kai text-base mt-1 leading-relaxed">📖 ${esc(P.src)}</div><div class="text-sm opacity-75 mt-1">💡 ${esc(P.note)}</div>
+      <div class="mt-2 flex flex-wrap gap-1">${chip(`價錢 ${price} 兩${price < P.price ? '（落後折扣）' : ''}`, null)} ${chip(`別人停到付人情錢 ${P.rent} 兩`, null)} ${chip(`放榜時 +${P.rep} 聲望`, true)}</div></div>`;
+  if (mode === 'offer') return openModal({ title:'要置產嗎？', badge:'產', color:'#b8893b', html: html + `<p class="kai text-lg mt-3">你有 💰 ${p.silver} 兩。</p>`,
+    buttons:[{ label:'不買', value:0, cls:'btn-ink text-lg' }, { label:`買下（${price} 兩）`, value:1 }] });
+  const pr = openModal({ title:`${p.name} 置產`, badge:'產', color:'#b8893b', html: html + `<p class="kai text-lg mt-3">${esc(p.name)} 花 ${price} 兩買下了「${esc(P.name)}」。</p>`, buttons:[{ label:'繼續 ▶', value:1 }] });
+  autoClick($('#mBtns button'), 3); return pr;
+}
+async function propertyFlow(p){
+  const t = p.pos, P = PROPS[t]; if (!P || !G || G.over) return;
+  const o = ownerOf(G, t);
+  if (!o){
+    const price = propPrice(G, p, t);
+    if (p.silver < price){ if (!isAI(p)) toast(`「${P.name}」要 ${price} 兩，你的銀兩不夠`); return; }
+    let buy = false;
+    if (isAI(p)){ buy = aiWantsBuy(G, p, t); if (buy) { p.silver -= price; p.props.push(t); R && R.sync(G); updateUI(); SND.play('coin'); await propModal(p, t, 'ai'); } }
+    else { buy = !!(await propModal(p, t, 'offer')); if (buy){ p.silver -= price; p.props.push(t); SND.play('coin'); } }
+    if (buy){ log(`🏠 ${pTag(p)} 花 ${price} 兩置產「${esc(P.name)}」`); setMsg(`${p.name} 買下「${P.name}」`); R && R.sync(G); updateUI(); save(); }
+  } else if (o === p){
+    p.silver += ECON.ownVisit; toast(`🏠 回到自己的「${P.name}」：收 ${ECON.ownVisit} 兩`); updateUI();
+  } else {
+    const r = Math.min(p.silver, propRent(G, p, t));
+    p.silver -= r; o.silver += r; SND.play('coin');
+    const i = G.players.indexOf(p), j = G.players.indexOf(o);
+    floater(`銀兩-${r}`, $(`#pcard${i}`) || $(`#mini${i}`), '#b23a2a'); floater(`銀兩+${r}`, $(`#pcard${j}`) || $(`#mini${j}`), '#2f6b3f');
+    toast(`🏠 ${p.name} 停在 ${o.name} 的「${P.name}」，付人情錢 ${r} 兩${CATCHUP.isBehind(p, G) ? '（落後減半）' : ''}`, 3200);
+    log(`🏠 ${pTag(p)} 付給 ${pTag(o)} 人情錢 ${r} 兩`); updateUI(); save();
+  }
 }
 
 /* ---------- 對話框（Promise 版）---------- */
@@ -1513,45 +1919,78 @@ function openModal({ title, badge, color, html, buttons }){
 function askQuestion({ p, tile, title, sub, effectFn }){
   return new Promise(res => {
     const q = drawQuestion(tile && tile.cats);
-    const order = q.o.length > 2 ? shuffle(q.o.map((_, i) => i)) : q.o.map((_, i) => i);
+    const taunted = !!p.taunt; p.taunt = 0;
+    // 被嘲諷：多一個干擾選項（取自同類別其他題目的錯誤選項）
+    const opts = q.o.slice();
+    if (taunted && q.o.length > 2){
+      const pool = QBANK.filter(x => x !== q && x.cat === q.cat).flatMap(x => x.o.filter((_, i) => i !== x.a)).filter(t => !opts.includes(t));
+      if (pool.length) opts.push(pool[rand(pool.length)]);
+    }
+    const order = opts.length > 2 ? shuffle(opts.map((_, i) => i)) : opts.map((_, i) => i);
     const st = TYPE_STYLE[tile ? tile.type : 'q'];
-    const box = $('#modalBox'); let done = false, timer = 0, hinted = false, left = G.qTime;
+    const qTime = taunted ? (G.qTime ? Math.max(8, Math.round(G.qTime * 0.6)) : 15) : G.qTime; // 被嘲諷：限時縮短
+    const box = $('#modalBox'); let done = false, timer = 0, hinted = false, tutored = false, left = qTime;
     const behind = CATCHUP.isBehind(p, G); // 作答前判定是否落後
+    const tutorCost = cardCost(G, p, 'tutor');
     box.innerHTML = `
       <div class="flex items-start gap-3 mb-2">
         <span class="seal w-10 h-10 text-xl flex-none" style="background:${st.color}">${st.badge}</span>
         <div class="flex-1 min-w-0"><div class="kai text-2xl leading-tight">${esc(title)}</div><div class="text-sm opacity-75 kai mt-0.5">${esc(sub || '')}</div></div>
       </div>
-      <div class="flex items-center gap-2 text-sm mb-2"><span class="ptok" style="width:24px;height:24px;font-size:.8rem;background:${p.color}">${esc(p.tok)}</span><span class="kai">${esc(p.name)} 作答</span>${behind ? '<span class="chip down kai" title="落後玩家：答對額外體面 +1">🔥 追分中</span>' : ''}
+      <div class="flex items-center gap-2 text-sm mb-2 flex-wrap"><span class="ptok" style="width:24px;height:24px;font-size:.8rem;background:${p.color}">${esc(p.tok)}</span><span class="kai">${esc(p.name)} 作答</span>${behind ? '<span class="chip down kai" title="落後玩家：答對額外體面 +1">🔥 追分中</span>' : ''}${p.retryNext ? '<span class="chip up kai">⭐ 答錯可再選</span>' : ''}
         <span class="chip neu ml-auto">${esc(q.cat)}</span></div>
+      ${taunted ? `<div class="mb-2 p-2 rounded-lg kai text-base" style="background:rgba(178,58,42,.1);color:var(--zhu)">🗯 被嘲諷「現世寶、窮鬼」：${isAI(p) ? '心浮氣躁，答對率下降' : '限時縮短，還多了一個干擾選項'}</div>` : ''}
       <div class="kai text-[1.32rem] leading-relaxed mb-3" style="user-select:text">${esc(q.q)}</div>
-      ${G.qTime ? `<div class="qtimer mb-3"><div id="qbar" style="width:100%"></div></div>` : ''}
-      <div class="grid gap-2" id="qOpts">${order.map((oi, k) => `<button class="opt-btn" data-oi="${oi}" data-testid="opt"><span class="ok">${q.o.length===2 ? '' : LETTERS[k]}</span><span class="kai flex-1">${esc(q.o[oi])}</span></button>`).join('')}</div>
+      ${qTime ? `<div class="qtimer mb-3"><div id="qbar" style="width:100%"></div></div>` : ''}
+      <div class="grid gap-2" id="qOpts">${order.map((oi, k) => `<button class="opt-btn" data-oi="${oi}" data-testid="opt"><span class="ok">${opts.length===2 ? '' : LETTERS[k]}</span><span class="kai flex-1">${esc(opts[oi])}</span></button>`).join('')}</div>
       ${isAI(p) ? `<div class="mt-3 kai text-lg flex items-center gap-2" id="qAI"><span class="think-dots">🤖</span> ${esc(p.name)}：「${esc(aiLine(p))}」<span class="text-sm opacity-60">（電腦作答中）</span></div>` : ''}
-      <div class="flex items-center gap-2 mt-3" id="qTools" ${isAI(p) ? 'style="display:none"' : ''}>
+      <div id="qRetry" class="mt-2 kai text-lg" style="display:none;color:var(--song)">⭐ 文曲星保佑：這個不對，再選一次！</div>
+      <div class="flex items-center gap-2 mt-3 flex-wrap" id="qTools" ${isAI(p) ? 'style="display:none"' : ''}>
         <button class="btn-ink text-sm" id="qHint">${p.freeHint ? '🙏 文昌庇佑（免費）刪去一個錯誤選項' : '🤝 請教同案（人情 −1）刪去一個錯誤選項'}</button>
-        ${G.qTime ? `<span class="ml-auto kai text-sm opacity-70">剩 <span id="qLeft">${left}</span> 秒</span>` : ''}
+        ${!isAI(p) && p.hand.includes('tutor') ? `<button class="btn-ink text-sm" id="qTutor" data-testid="use-tutor">📜 打出「先生指點」（${tutorCost} 兩）</button>` : ''}
+        ${qTime ? `<span class="ml-auto kai text-sm opacity-70">剩 <span id="qLeft">${left}</span> 秒</span>` : ''}
       </div>
       <div id="qRes" style="display:none"></div>`;
     const btns = $$('.opt-btn', box);
-    const hintBtn = $('#qHint', box);
-    if (q.o.length <= 2 || (!p.freeHint && p.renqing < 1)) hintBtn.disabled = true, hintBtn.style.opacity = .45;
+    const hintBtn = $('#qHint', box), tutBtn = $('#qTutor', box);
+    const dim = b => { if (b){ b.disabled = true; b.style.opacity = .45; } };
+    const removeWrong = () => { const wrong = btns.filter(b => +b.dataset.oi !== q.a && !b.classList.contains('gone')); if (wrong.length < 2) return false; // 電腦作答時按鈕全鎖，所以用 gone 判斷
+      const b = wrong[rand(wrong.length)]; b.disabled = true; b.classList.add('gone'); return true; };
+    if (opts.length <= 2 || (!p.freeHint && p.renqing < 1)) dim(hintBtn);
+    if (tutBtn && (opts.length <= 2 || p.silver < tutorCost)) dim(tutBtn);
     hintBtn.onclick = () => {
-      if (hinted || done) return; const wrong = btns.filter(b => +b.dataset.oi !== q.a && !b.disabled);
-      if (wrong.length < 2) return;
+      if (hinted || done) return; if (!removeWrong()) return;
       if (p.freeHint) p.freeHint--; else { p.renqing--; floater('人情-1', $(`#pcard${G.players.indexOf(p)}`), '#b23a2a'); }
-      const b = wrong[rand(wrong.length)]; b.disabled = true; b.classList.add('gone'); hinted = true; hintBtn.disabled = true; hintBtn.style.opacity = .45; updateUI();
+      hinted = true; dim(hintBtn); updateUI();
+    };
+    if (tutBtn) tutBtn.onclick = () => {
+      if (tutored || done || p.silver < tutorCost) return; if (!removeWrong()) return;
+      p.silver -= tutorCost; takeFromHand(p, 'tutor'); tutored = true; dim(tutBtn); SND.play('card');
+      log(`📜 ${pTag(p)} 打出「先生指點」，刪去一個錯誤選項`); updateUI();
     };
     const finish = (chosen) => {
-      if (done) return; done = true; clearInterval(timer);
+      if (done) return;
+      // 文曲星下凡：答錯可再選一次
+      if (chosen !== q.a && chosen >= 0 && p.retryNext){
+        p.retryNext = 0; const b = btns.find(x => +x.dataset.oi === chosen); if (b){ b.disabled = true; b.classList.add('wrong', 'gone'); }
+        show($('#qRetry', box), 'block'); SND.play('card'); log(`⭐ ${pTag(p)} 得文曲星保佑，再選一次`); updateUI();
+        if (isAI(p)) aiAnswer(true);
+        return;
+      }
+      done = true; clearInterval(timer);
       const ok = chosen === q.a;
       btns.forEach(b => { b.disabled = true; const oi = +b.dataset.oi; if (oi === q.a) b.classList.add('right'); else if (oi === chosen) b.classList.add('wrong'); });
       ok ? (p.stats.right++, SND.play('right')) : (p.stats.wrong++, SND.play('wrong'));
       log(`${pTag(p)} ${ok ? '答對' : '答錯'}了「${esc(q.q.slice(0, 14))}…」`);
-      hide($('#qTools', box));
+      hide($('#qTools', box)); hide($('#qRetry', box));
       let eff = effectFn ? effectFn(ok) : null;
       if (ok && behind) eff = CATCHUP.withRightBonus(eff);
-      const chips = applyEffect(p, eff);
+      let chips = applyEffect(p, eff);
+      // 答對：得銀兩、抽一張手牌
+      let drew = null;
+      if (ok){ p.silver += ECON.right; chips += ' ' + chip(`銀兩 +${ECON.right}`, true); drew = drawHand(G, p);
+        if (drew) chips += ' ' + chip(`抽到手牌${isAI(p) ? '' : '「' + CARD_DEFS[drew].name + '」'}`, true); else chips += ' ' + chip('手牌已滿（3 張）', null);
+        updateUI(); }
       const resEl = $('#qRes', box);
       resEl.innerHTML = `
         <div class="mt-3 p-3 rounded-lg ${ok ? 'bg-[rgba(61,107,79,.1)]' : 'bg-[rgba(178,58,42,.08)]'}">
@@ -1568,18 +2007,23 @@ function askQuestion({ p, tile, title, sub, effectFn }){
       setTimeout(() => resEl.scrollIntoView({ behavior:'smooth', block:'end' }), 60);
     };
     btns.forEach(b => b.onclick = () => finish(+b.dataset.oi));
-    if (isAI(p)){
-      // 電腦作答：選項鎖住，停頓 1.2–2.2 秒後依難度的命中率作答
-      btns.forEach(b => b.disabled = true);
-      aiDelay(1200, 2200).then(() => {
-        const wrong = q.o.map((_, i) => i).filter(i => i !== q.a);
-        finish(Math.random() < aiAcc() ? q.a : wrong[rand(wrong.length)]);
+    // 電腦作答：選項鎖住，停頓後依難度命中率作答；有「先生指點」會先用；被嘲諷時答對率 −20%
+    const aiAnswer = (again) => {
+      aiDelay(again ? 700 : 1200, again ? 1200 : 2200).then(() => {
+        if (done) return;
+        if (!again && aiUseTutor(G, p) && removeWrong()){ p.silver -= cardCost(G, p, 'tutor'); takeFromHand(p, 'tutor'); log(`📜 ${pTag(p)} 打出「先生指點」`); SND.play('card'); updateUI(); }
+        const live = btns.filter(b => !b.classList.contains('gone')).map(b => +b.dataset.oi), wrong = live.filter(i => i !== q.a);
+        let acc = aiAcc() - (taunted ? 0.2 : 0);
+        const removed = opts.length - live.length; acc = acc + (1 - acc) * Math.min(0.9, removed / Math.max(2, opts.length - 1));
+        finish(!wrong.length || Math.random() < acc ? q.a : wrong[rand(wrong.length)]);
       });
-    } else if (G.qTime){
+    };
+    if (isAI(p)){ btns.forEach(b => b.disabled = true); aiAnswer(false); }
+    else if (qTime){
       timer = setInterval(() => {
-        if ($('#sheetLayer').style.display === 'flex') return; // 開啟說明時暫停
+        if ($('#sheetLayer').style.display === 'flex' || document.hidden) return; // 開啟說明或切到背景時暫停
         left--; const l = $('#qLeft', box), bar = $('#qbar', box);
-        if (l) l.textContent = Math.max(0, left); if (bar) bar.style.width = Math.max(0, left / G.qTime * 100) + '%';
+        if (l) l.textContent = Math.max(0, left); if (bar) bar.style.width = Math.max(0, left / qTime * 100) + '%';
         if (left <= 0) finish(-1);
       }, 1000);
     }
@@ -1671,6 +2115,7 @@ function endGame(reason = 'manual'){
       <span class="ptok" style="background:${p.color}">${esc(p.tok)}</span>
       <div class="flex-1 min-w-0"><div class="kai text-xl truncate">${esc(p.name)} <span class="text-sm opacity-70">${p.isAI ? '🤖 電腦' : '👤 你'}・${RANKS[p.rank].name}</span></div>
         <div class="text-sm opacity-80">體面 ${p.timian}｜人情 ${p.renqing}｜功名 +${RANKS[p.rank].bonus}｜答對 ${p.stats.right}／${p.stats.right+p.stats.wrong}</div>
+        <div class="text-sm opacity-80">💰 銀兩 ${p.silver} 兩 → +${silverRepOf(p)}｜🏠 產業 ${p.props.length} 處 → +${propRepOf(p)}${p.props.length ? `（${p.props.map(t => esc(PROPS[t].name)).join('、')}）` : ''}</div>
         <div class="text-xs opacity-60 kai">胡屠戶最後叫你：「${huMood(p).call}」</div></div>
       <div class="kai text-3xl text-zhu">${score(p)}</div>
     </div>`).join('');
@@ -1679,7 +2124,9 @@ function endGame(reason = 'manual'){
     ['📚 學富五車（答對最多）', best(p => p.stats.right)],
     ['🔥 雪中送炭', G.players.filter(p => p.stats.snow > 0)],
     ['🥩 胡屠戶的心頭肉（被奉承最多）', best(p => p.stats.flatter)],
-    ['💦 狗血噴頭（被罵最多）', best(p => p.stats.scold)]
+    ['💦 狗血噴頭（被罵最多）', best(p => p.stats.scold)],
+    ['💰 富甲一方（銀兩＋產業聲望最多）', best(p => silverRepOf(p) + propRepOf(p))],
+    ['🛡 老太太護著（擋下最多攻擊）', best(p => p.stats.blocked || 0)]
   ].filter(a => a[1].length);
   $('#awardList').innerHTML = awards.map(a => `<span class="chip neu kai text-base py-1">${a[0]}：${a[1].map(p => esc(p.name)).join('、')}</span>`).join('');
   $('#reflectList').innerHTML = shuffle(REFLECTIONS).slice(0, 3).map(r => `<li>${esc(r)}</li>`).join('');
@@ -1856,7 +2303,9 @@ async function toggleMode(){
 }
 function tileInfo(i){
   const t = TILES[i], st = TYPE_STYLE[t.type];
-  toast(`【${i}・${t.name}】${st.name}｜${t.story}`, 4200);
+  let extra = '';
+  if (PROPS[i] && G){ const P = PROPS[i], o = ownerOf(G, i); extra = `｜🏠 產業「${P.name}」${o ? `：${o.name} 所有，停到付人情錢 ${P.rent} 兩` : `：價 ${P.price} 兩，答完題可置產`}`; }
+  toast(`【${i}・${t.name}】${st.name}｜${t.story}${extra}`, 4800);
 }
 function setMsg(t){ if (R && R.setMessage) R.setMessage(t); const h = $('#hintLine'); if (h && t) h.textContent = t; }
 
@@ -1893,6 +2342,7 @@ function updateUI(){
   $('#curTok').style.background = p.color; $('#curTok').textContent = p.tok;
   $('#curName').textContent = p.name; $('#curRound').textContent = `第 ${G.round} 輪`;
   $('#curRank').textContent = RANKS[p.rank].name;
+  $('#curSilver').textContent = `💰 ${p.silver}`;
   $('#roundInfo').textContent = `第 ${G.round} 輪`;
   $('#huFace').innerHTML = huFaceSVG(att);
   $('#huMood').textContent = m.label; $('#huQuote').textContent = `對 ${p.name}：${m.quote}`;
@@ -1903,10 +2353,12 @@ function updateUI(){
         <div class="flex-1 min-w-0"><div class="kai text-base truncate">${esc(pl.name)} <span class="text-[11px] opacity-70">${pl.isAI ? `🤖 ${esc((AI_PERSONAS[pl.persona] || {}).tag || '電腦')}` : '👤 你'}</span></div><div class="text-[11px] opacity-65 truncate">屠戶叫他「${huMood(pl).call}」${pl.skip?'・休息中':''}</div>${CATCHUP.isBehind(pl, G) ? '<div class="text-[11px] text-zhu kai">🔥 追分中：答對體面 +1、可補考</div>' : CATCHUP.isLeader(pl, G) ? '<div class="text-[11px] kai" style="color:var(--jin)">👑 領先：奉承加成上限 +1</div>' : ''}</div>
         <span class="chip ${pl.rank===2?'down':'neu'} kai">${RANKS[pl.rank].name}</span></div>
       <div class="flex justify-between mt-1.5 text-sm kai"><span>體面 <b>${pl.timian}</b></span><span>人情 <b>${pl.renqing}</b></span><span class="text-zhu">聲望 <b>${score(pl)}</b></span></div>
+      <div class="econ"><span title="銀兩（每 5 兩折 1 聲望）">💰 ${pl.silver} 兩</span><span title="產業">🏠 ${pl.props.length ? pl.props.map(t => esc(PROPS[t].name)).join('、') : '無'}</span><span title="手牌數">🃏 ${pl.hand.length}</span>${pl.shield ? '<span title="老太太護著：下一次攻擊會被擋下">🛡 護身</span>' : ''}${!canTarget(G, pl) ? '<span title="剛被攻擊：保護期內不會再被攻擊">⏳ 保護期</span>' : ''}</div>
     </div>`).join('');
   $('#miniBar').innerHTML = G.players.map((pl, i) => `
-    <div class="mini-p ${i===G.cur?'cur':''}" title="${esc(pl.name)}"><span class="ptok" style="background:${pl.color}">${esc(pl.tok)}</span>
-      <span class="nm">${esc(pl.name)}</span><span class="text-[11px] opacity-70">${pl.rank ? RANKS[pl.rank].name.slice(0,1) : ''}</span><b class="ml-auto">${score(pl)}</b></div>`).join('');
+    <div class="mini-p ${i===G.cur?'cur':''}" id="mini${i}" title="${esc(pl.name)}：💰${pl.silver} 兩、🏠${pl.props.length} 處、🃏${pl.hand.length} 張"><span class="ptok" style="background:${pl.color}">${esc(pl.tok)}</span>
+      <span class="nm">${esc(pl.name)}</span><span class="mcol"><span class="text-[11px] opacity-70">${pl.rank ? RANKS[pl.rank].name.slice(0,1) : '&nbsp;'}</span><span class="sv">💰${pl.silver}${pl.shield ? '🛡' : ''}${!canTarget(G, pl) ? '⏳' : ''}</span></span><b class="ml-auto">${score(pl)}</b></div>`).join('');
+  renderHand();
   const mb = $('#btnMode'); mb.textContent = innerWidth < 600 ? (G.view === '3d' ? '2D' : '3D') : (G.view === '3d' ? '改用 2D' : '改用 3D'); mb.title = G.view === '3d' ? '改用 2D 棋盤' : '改用 3D 棋盤';
   $('#modeBadge').textContent = G.view === '3d' ? '3D 棋盤・拖曳旋轉／雙指縮放／點格子看說明' : '2D 棋盤・點格子看說明';
   $('#logBox').innerHTML = G.log.map(l => `<div class="log-line">${l}</div>`).join('');
@@ -1980,7 +2432,7 @@ async function startGame(cfg){
 }
 async function resumeGame(){
   const s = STORE.get('save', null); if (!s || s.over) return;
-  if (!s.v || s.v < 2){ STORE.del('save'); toast('舊版（分組）存檔無法接續，請開新局'); return goTitle(); }
+  if (!s.v || s.v < 3){ STORE.del('save'); toast('舊版存檔無法接續（第五版新增銀兩與手牌），請開新局'); return goTitle(); }
   G = s; busy = false; showScreen('scrGame');
   await mountRenderer(G.view === '2d' ? '2d' : '3d', { auto: G.cfg.mode === 'auto' && G.view !== '2d' });
   toast('已接續上一局'); startTurn();
@@ -2000,7 +2452,12 @@ function openRules(){
       <p><b class="kai text-lg">目標：</b>這是<b>單人遊戲</b>：你和 1–3 位電腦對手沿著〈范進中舉〉的故事時間軸走棋，答題、抽卡、應考，累積<b>聲望</b>。回合數或時間到時，聲望最高者為「解元」。<b>沒有人會破產出局</b>，大家都玩到最後。</p>
       <p><b class="kai text-lg">電腦對手：</b>魏好古（同案秀才，重情義）、集上高鄰（報喜鄰居，愛錦上添花）、跳駝子郎中（精打細算）。電腦會自己擲骰、答題、抽卡；難度決定它們的答對率：簡單約 50%、普通約 65%、困難約 80%。</p>
       <p><b class="kai text-lg">🏅 證書：</b>以<b>「普通」或「困難」</b>難度拿下第一名（且至少擲過 ${CERT_RULE.minTurns} 次骰子），即可領取由「${esc(CERTIFIER)}」認證的證書，可下載 PNG 或直接列印。</p>
-      <p><b class="kai text-lg">聲望＝</b>體面＋人情＋功名加分（童生 0、秀才 +5、舉人 +10）。</p>
+      <p><b class="kai text-lg">聲望＝</b>體面＋人情＋功名加分（童生 0、秀才 +5、舉人 +10）＋<b>銀兩折算（每 5 兩 1 分）</b>＋<b>產業聲望</b>。</p>
+      <p><b class="kai text-lg">💰 銀兩：</b>開局 ${ECON.start} 兩。答對一題 +${ECON.right} 兩；經過「應考半生」+${ECON.passStart} 兩；考中秀才、舉人各得賀禮 ${ECON.rankSilver[1]}、${ECON.rankSilver[2]} 兩。</p>
+      <p><b class="kai text-lg">🏠 置產：</b>棋盤上有 7 處產業（格子下方標著 🏠 價錢）：${Object.values(PROPS).map(P => `${esc(P.name)}（${P.price} 兩）`).join('、')}。停在產業格、答完題後可以買下；之後別人停到這格要付你「人情錢」，自己停到收 ${ECON.ownVisit} 兩。放榜時產業折成聲望。2D 棋盤以主人顏色標示，3D 棋盤插上主人顏色的小旗。</p>
+      <p><b class="kai text-lg">🃏 手牌：</b>答對題目會抽一張手牌，手牌最多 ${ECON.handMax} 張（滿了就抽不到）。輪到你時，<b>擲骰前或走完之後</b>都能點手牌打出，<b>每回合最多一張</b>，打牌要花銀兩。</p>
+      <ul class="list-disc pl-6">${Object.values(CARD_DEFS).map(c => `<li><b class="kai">${c.icon} ${esc(c.name)}</b>（${KIND_NAME[c.kind]}・${c.cost} 兩）：${esc(c.desc)}<span class="opacity-70">　📖 ${esc(c.quote)}</span></li>`).join('')}</ul>
+      <p><b class="kai text-lg">⚖ 出牌的公平規則：</b>①打牌、置產都要花銀兩；②落後（🔥追分中）的人打牌少 1 兩、置產少 2 兩、付人情錢減半；③被攻擊後有一整輪「⏳ 保護期」，不會被連續攻擊；④電腦只會攻擊<b>領先而且沒有落後</b>的人，不會專挑你欺負；⑤手上有「老太太護著」時，被攻擊會問你要不要當場擋下。</p>
       <div><b class="kai text-lg">回合：</b>擲一顆骰子前進。停在格子上：</div>
       <ul class="list-disc pl-6">
         <li>問答、考場、胡屠戶、情節格：先答一題，答對與否會影響結果，答完會顯示解析。</li>
@@ -2010,7 +2467,7 @@ function openRules(){
       </ul>
       <p><b class="kai text-lg">胡屠戶的臉色：</b>依你的功名與體面變化──童生時被罵「現世寶」，中了舉就成了「賢婿老爺」。停在胡屠戶格時，他的臉色決定你是挨罵還是被奉承。這正是課文的「前倨後恭」。</p>
       <p><b class="kai text-lg">公平機制（追分）：</b>聲望比全體平均低 3 分以上的考生（你或電腦都一樣）會顯示「🔥 追分中」：答對題目額外體面 +1，考場答錯可「補考」一次。胡屠戶的奉承越聽越不稀罕（加成遞減），領先者的奉承加成最多 +1。另有 9 張「追分卡」專門照顧落後的玩家（鄰里接濟、名落孫山也可再考、宗師憐才、樹大招風……）。</p>
-      <p><b class="kai text-lg">提示：</b>答題時可「請教同案」花 1 點人情刪去一個錯誤選項。</p>
+      <p><b class="kai text-lg">提示：</b>答題時可「請教同案」花 1 點人情刪去一個錯誤選項；有「先生指點」手牌時也可在答題畫面打出，刪去一個錯誤選項。</p>
       <p><b class="kai text-lg">3D／2D：</b>右上角按鈕可隨時切換，進度不會遺失。3D 可拖曳旋轉、雙指縮放，雙擊回正；點格子可看該格說明。</p>
       <div class="pt-1">${legend}</div>
       <p class="text-sm opacity-70">※ 課文、注釋、讀音依龍騰版〈范進中舉〉。「鄉紳來訪」為延伸格，取材自原著第三回課文節選以後的情節。</p>
@@ -2147,7 +2604,7 @@ function loadXLSX(){
    ===================================================================== */
 function goTitle(){
   const sv = STORE.get('save', null);
-  show('#btnResume', sv && sv.v >= 2 ? 'block' : 'none');
+  show('#btnResume', sv && sv.v >= 3 ? 'block' : 'none');
   showScreen('scrTitle');
 }
 document.addEventListener('click', e => {
