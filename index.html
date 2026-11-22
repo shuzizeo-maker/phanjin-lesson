@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#efe5cf">
-<meta name="description" content="〈范進中舉〉學習遊戲：范進命運棋。高中國文課堂用，2–4 人同機輪流，3D／2D 雙版本。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<meta name="description" content="〈范進中舉〉學習遊戲：范進命運棋。單人對戰電腦，手機、平板、電腦皆可玩，3D／2D 雙版本。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2710%27 fill=%27%23b23a2a%27/%3E%3Ctext x=%2732%27 y=%2746%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%23fff3e0%27%3E范%3C/text%3E%3C/svg%3E">
 <title>范進命運棋｜〈范進中舉〉學習遊戲</title>
 <!--
@@ -53,7 +56,8 @@
   .btn-seal:disabled{filter:grayscale(.85) brightness(1.05); opacity:.6; cursor:not-allowed}
   .btn-ink{font-family:"LXGW WenKai TC",serif; background:rgba(255,252,242,.75); color:var(--ink); border:1.5px solid rgba(31,26,23,.65);
     border-radius:8px; padding:.45em .9em; min-height:40px; transition:background .15s, transform .1s}
-  .btn-ink:hover{background:#fffaf0} .btn-ink:active{transform:scale(.97)}
+  @media (hover:hover){ .btn-ink:hover{background:#fffaf0} }
+  .btn-ink:active{transform:scale(.97)}
   .btn-ink.on{background:var(--dai); color:#f5ecd8; border-color:var(--dai)}
   .chip{display:inline-flex; align-items:center; gap:.25em; padding:.1em .55em; border-radius:999px; font-size:.85em; border:1px solid currentColor; white-space:nowrap}
   .chip.up{color:#2f6b3f; background:rgba(61,107,79,.08)} .chip.down{color:var(--zhu); background:rgba(178,58,42,.08)} .chip.neu{color:var(--dai)}
@@ -62,7 +66,7 @@
   ::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:rgba(90,60,30,.35);border-radius:8px}
 
   /* ========== 畫面配置 ========== */
-  .screen{position:fixed; inset:0; display:none}
+  .screen{position:fixed; inset:0; display:none; height:100vh; height:100dvh}
   #scrGame{display:none; flex-direction:column}
   #gameMain{flex:1; display:flex; min-height:0}
   #boardWrap{flex:1; position:relative; min-width:0; min-height:0}
@@ -75,6 +79,7 @@
     #playerList{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   }
   .topbar-btn{min-width:42px; min-height:40px; padding:.3em .6em; font-size:.92rem}
+
 
   /* ========== 2D 棋盤 ========== */
   .b2d{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(7,1fr); gap:calc(var(--u)*.05)}
@@ -113,11 +118,11 @@
   /* ========== 對話框 ========== */
   .layer{position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(31,26,23,.42); backdrop-filter:blur(2px); z-index:50}
   #sheetLayer{z-index:70}
-  .modal-box{width:min(640px, 100%); max-height:calc(100vh - 28px); overflow-y:auto; padding:18px 18px 16px; animation:popin .28s cubic-bezier(.2,.9,.3,1.2)}
+  .modal-box{width:min(640px, 100%); max-height:calc(100vh - 28px); max-height:calc(100dvh - 28px); overflow-y:auto; padding:18px 18px 16px; animation:popin .28s cubic-bezier(.2,.9,.3,1.2)}
   @keyframes popin{from{opacity:0; transform:translateY(14px) scale(.96)} to{opacity:1; transform:none}}
   .opt-btn{display:flex; gap:.6em; align-items:flex-start; width:100%; text-align:left; padding:.7em .85em; border-radius:9px; border:1.5px solid rgba(31,26,23,.45);
     background:rgba(255,252,244,.85); font-size:1.05rem; min-height:48px; transition:background .15s, transform .1s, border-color .15s}
-  .opt-btn:hover:not(:disabled){background:#fff; border-color:var(--dai)}
+  @media (hover:hover){ .opt-btn:hover:not(:disabled){background:#fff; border-color:var(--dai)} }
   .opt-btn:active:not(:disabled){transform:scale(.985)}
   .opt-btn .ok{font-family:"LXGW WenKai TC",serif; flex:none; width:1.7em; height:1.7em; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--dai); color:#fff; font-size:.9em}
   .opt-btn.right{background:#e3efe2; border-color:#2f6b3f} .opt-btn.right .ok{background:#2f6b3f}
@@ -148,6 +153,86 @@
   input[type=range]{accent-color:var(--zhu)}
   .tbl th,.tbl td{padding:4px 6px; border-bottom:1px solid rgba(90,60,30,.18); vertical-align:top; font-size:.88rem}
   textarea,input[type=text],input[type=number],select{background:rgba(255,253,246,.95); border:1.5px solid rgba(31,26,23,.4); border-radius:7px; padding:.35em .5em; font-family:inherit; user-select:text; -webkit-user-select:text}
+  .think-dots{ display:inline-block; animation:thinkp 1s ease-in-out infinite }
+  @keyframes thinkp{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-4px) } }
+  /* ====================================================================
+     手機版面（直式 ≤600px 寬；橫式 ≤500px 高）
+     - 頂端精簡狀態列、棋盤可放大並自動捲到目前棋子、對話框改為全螢幕
+     - 輸入框 16px 以上，避免 iOS 點輸入框時自動放大
+     - 安全區域（瀏海、Home 條）用 env(safe-area-inset-*) 留白
+     ==================================================================== */
+  #miniBar{display:none}
+  #btnZoom{position:absolute; left:8px; bottom:8px; z-index:8; min-width:44px; min-height:44px; padding:0 .6em; font-size:1rem}
+  #boardHost.zoomed{overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+  #boardHost.zoomed .b2d{position:relative; left:auto; top:auto; transform:none; margin:10px auto}
+  #certImg{-webkit-touch-callout:default; -webkit-user-select:auto; user-select:auto}
+  .phone-only{display:none}
+  header#gameHeader{padding-top:max(6px, env(safe-area-inset-top)); padding-left:max(12px, env(safe-area-inset-left)); padding-right:max(12px, env(safe-area-inset-right))}
+  @media (max-width:600px), (max-height:500px){
+    .phone-only{display:revert}
+    .no-phone{display:none !important}
+    body{font-size:16px}
+    input[type=text],input[type=number],select,textarea{font-size:16px !important; min-height:44px}
+    .btn-ink{min-height:44px}
+    .topbar-btn{min-width:44px; min-height:44px; padding:.2em .4em; font-size:1rem; white-space:nowrap}
+    .text-xs{font-size:14px !important; line-height:1.4}
+    .text-\[11px\]{font-size:14px !important}
+    .chip{font-size:14px}
+    input[type=range]{min-height:44px}
+    #rankList, #playerList{grid-template-columns:minmax(0,1fr)}
+    #modeBadge{display:none}
+    #gameHeader .ttl{display:none}
+    #gameHeader{gap:6px !important}
+    /* 對話框：全螢幕 sheet */
+    .layer{padding:0; align-items:stretch; justify-content:stretch}
+    .modal-box, #sheetBox{width:100% !important; max-width:none; max-height:none; height:100%; border-radius:0; border:none;
+      padding:calc(14px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      animation:sheetin .25s ease-out; overflow-x:hidden}
+    @keyframes sheetin{from{transform:translateY(24px); opacity:0} to{transform:none; opacity:1}}
+    #mBtns button, #cBtns button, #qNext{flex:1 1 100%; min-height:54px; font-size:1.2rem}
+    #cBtns .btn-ink{font-size:1.05rem}
+    .opt-btn{min-height:54px; font-size:1.1rem; padding:.75em .8em}
+    #qTools .btn-ink{font-size:.95rem}
+    .card-face{padding:14px}
+    #toast{top:calc(56px + env(safe-area-inset-top)); font-size:1rem}
+    /* 結算頁 */
+    #scrEnd .paper-card{padding:14px}
+    #certBox button{flex:1 1 100%; min-height:52px}
+  }
+  /* 直式手機：棋盤在上、精簡狀態列、擲骰卡固定在下方 */
+  @media (max-width:600px) and (orientation:portrait){
+    #miniBar{display:flex; gap:6px; padding:6px max(8px, env(safe-area-inset-left)); overflow-x:auto; border-bottom:1px solid rgba(90,60,30,.2); background:rgba(247,240,223,.7); flex:none}
+    #gameMain{flex-direction:column; overflow:hidden}
+    #boardWrap{flex:1 1 auto; height:auto; min-height:0}
+    #panel{flex:none; width:auto; max-height:40%; overflow-y:auto; border-left:none; border-top:1px solid rgba(90,60,30,.25); padding:8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left))}
+    #turnCard{padding:8px 10px; margin-bottom:8px; position:sticky; top:0; z-index:3}
+    #btnRoll{margin-top:8px; min-height:54px; font-size:1.35rem}
+    #hintLine{font-size:14px !important; opacity:.85; margin-top:6px; min-height:2.8em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+    #playerList{display:none !important}
+  }
+  /* 橫式手機：棋盤在左、窄側欄 */
+  @media (max-height:500px) and (orientation:landscape){
+    #gameHeader{padding-top:4px; padding-bottom:4px}
+    #panel{width:clamp(250px, 34vw, 320px); padding:8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 10px}
+    #turnCard{padding:8px 10px}
+    #btnRoll{margin-top:6px; min-height:48px; font-size:1.2rem}
+    #hintLine{font-size:14px !important}
+    #boardWrap{padding-left:env(safe-area-inset-left)}
+  }
+  .mini-p{flex:1 1 0; min-width:76px; display:flex; align-items:center; gap:5px; padding:3px 6px; border-radius:9px; border:1.5px solid rgba(90,60,30,.28); background:rgba(255,251,241,.8); font-size:14px; line-height:1.15}
+  .mini-p.cur{border-color:var(--jin); box-shadow:0 0 0 2px rgba(184,137,59,.35)}
+  .mini-p .ptok{width:26px; height:26px; font-size:14px}
+  .mini-p .nm{font-family:"LXGW WenKai TC",serif; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:4.5em}
+  .mini-p b{color:var(--zhu); font-size:15px}
+  /* 列印：只印證書 */
+  @media print{
+    @page{ size:A4 landscape; margin:0 }
+    html,body{ background:#fff !important; overflow:visible !important; height:auto }
+    body *{ visibility:hidden !important }
+    #scrEnd, #scrEnd *{ transform:none !important; animation:none !important; filter:none !important; backdrop-filter:none !important }
+    #toast, .floater{ display:none !important }
+    #certImg{ visibility:visible !important; position:fixed; left:0; top:0; width:100vw; height:auto; border:none !important; box-shadow:none !important; border-radius:0 !important }
+  }
   .brush-underline{background:linear-gradient(transparent 70%, rgba(178,58,42,.25) 70%)}
 </style>
 </head>
@@ -176,7 +261,7 @@
       <span class="kai text-base md:text-lg">噫！好了！我中了！</span>
     </div>
     <div class="mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-md sm:max-w-xl justify-center">
-      <button id="btnNew" class="btn-seal text-xl flex-1" data-testid="btn-new">開始新局</button>
+      <button id="btnNew" class="btn-seal text-xl flex-1" data-testid="btn-new">開始應考</button>
       <button id="btnResume" class="btn-ink text-lg flex-1" style="display:none" data-testid="btn-resume">繼續上局</button>
     </div>
     <div class="mt-3 flex flex-wrap gap-2 justify-center">
@@ -184,30 +269,44 @@
       <button class="btn-ink" data-open="teacher">🧑‍🏫 教師模式（題庫）</button>
       <button class="btn-ink" data-open="settings">⚙ 音樂／音效</button>
     </div>
-    <p class="mt-6 text-xs opacity-60 max-w-md">建議以平板或電腦橫放遊玩。預設 3D 棋盤，裝置跑不動會自動改用 2D，遊戲中也能隨時切換。</p>
+    <p class="mt-6 text-sm opacity-75 max-w-md kai">單人遊戲：你與 1–3 位電腦對手（魏好古、集上高鄰、跳駝子郎中）爭奪榜首，以普通以上難度奪魁可領取證書。課文依龍騰版。</p>
+    <p class="mt-2 text-xs opacity-60 max-w-md">建議以平板或電腦橫放遊玩。預設 3D 棋盤，裝置跑不動會自動改用 2D，遊戲中也能隨時切換。</p>
   </div>
 </section>
 
-<!-- ===================== 開局設定 ===================== -->
+<!-- ===================== 開局設定（單人 vs 電腦）===================== -->
 <section id="scrSetup" class="screen overflow-y-auto">
   <div class="min-h-full flex items-center justify-center p-4">
     <div class="paper-card w-full max-w-2xl p-5 md:p-7 fadein">
       <h2 class="kai text-3xl mb-1">開局設定</h2>
-      <p class="text-sm opacity-70 mb-4">2–4 位玩家（或小組）共用一台裝置，輪流擲骰。</p>
-      <div class="mb-4">
-        <div class="kai text-lg mb-2">玩家／組數</div>
-        <div id="pCountBtns" class="flex gap-2">
-          <button class="btn-ink" data-n="2">2</button><button class="btn-ink" data-n="3">3</button><button class="btn-ink" data-n="4">4</button>
-        </div>
+      <p class="text-sm opacity-70 mb-4">單人應考：你和電腦對手同場競爭，看誰能金榜題名。</p>
+      <div class="grid sm:grid-cols-[1fr_auto_auto_auto] gap-2 mb-4 items-end">
+        <label class="block"><div class="kai text-lg mb-1">你的姓名</div><input id="inpName" type="text" maxlength="12" class="w-full kai text-lg" placeholder="請輸入姓名" data-testid="inp-name"></label>
+        <label class="block"><div class="kai text-sm mb-1">班級（選填）</div><input id="inpClass" type="text" maxlength="8" class="w-24 kai" placeholder="例：101"></label>
+        <label class="block"><div class="kai text-sm mb-1">座號（選填）</div><input id="inpSeat" type="text" maxlength="4" class="w-20 kai" placeholder="例：12"></label>
+        <label class="block"><div class="kai text-sm mb-1">棋子字</div><input id="inpTok" type="text" maxlength="1" class="w-16 text-center kai text-lg" placeholder="我"></label>
       </div>
-      <div id="pRows" class="grid gap-2 mb-5"></div>
-      <div class="grid md:grid-cols-3 gap-4 mb-5">
-        <label class="block"><div class="kai text-lg mb-1">遊戲時間</div>
+      <div class="mb-4">
+        <div class="kai text-lg mb-2">電腦對手人數</div>
+        <div id="aiCountBtns" class="flex gap-2 mb-2">
+          <button class="btn-ink" data-n="1">1 位</button><button class="btn-ink" data-n="2">2 位</button><button class="btn-ink" data-n="3">3 位</button>
+        </div>
+        <div id="aiList" class="grid gap-1.5"></div>
+      </div>
+      <div class="mb-4">
+        <div class="kai text-lg mb-2">難度</div>
+        <div id="diffBtns" class="flex gap-2 flex-wrap">
+          <button class="btn-ink" data-d="easy">簡單</button><button class="btn-ink" data-d="normal">普通</button><button class="btn-ink" data-d="hard">困難</button>
+        </div>
+        <div id="diffDesc" class="text-sm opacity-75 mt-1 kai"></div>
+      </div>
+      <div class="grid md:grid-cols-4 gap-4 mb-5">
+        <label class="block"><div class="kai text-lg mb-1">回合數</div>
+          <select id="selRounds" class="w-full"><option value="8">8 輪</option><option value="10" selected>10 輪</option><option value="12">12 輪</option><option value="0">不限輪數</option></select>
+        </label>
+        <label class="block"><div class="kai text-lg mb-1">時間上限</div>
           <select id="selTime" class="w-full">
-            <option value="0">不計時（老師手動結算）</option>
-            <option value="10">10 分鐘</option>
-            <option value="20" selected>20 分鐘</option>
-            <option value="custom">自訂…</option>
+            <option value="0">不計時</option><option value="10">10 分鐘</option><option value="15">15 分鐘</option><option value="20" selected>20 分鐘</option><option value="custom">自訂…</option>
           </select>
           <input id="inpTimeCustom" type="number" min="1" max="180" value="15" class="w-full mt-1" style="display:none" placeholder="分鐘">
         </label>
@@ -222,6 +321,7 @@
           </select>
         </label>
       </div>
+      <p class="text-xs opacity-60 mb-3">先達到回合數或時間上限者為準。以「普通」以上難度贏得第一名，就能領取證書。</p>
       <div class="flex gap-3 justify-end">
         <button class="btn-ink" id="btnSetupBack">返回</button>
         <button class="btn-seal text-xl" id="btnStart" data-testid="btn-start">開始應考 ▶</button>
@@ -232,25 +332,28 @@
 
 <!-- ===================== 遊戲畫面 ===================== -->
 <section id="scrGame" class="screen">
-  <header class="flex items-center gap-2 px-3 py-1.5 border-b border-[rgba(90,60,30,.25)] bg-[rgba(247,240,223,.75)]">
-    <div class="kai text-xl font-bold whitespace-nowrap">范進<span class="text-zhu">命運</span>棋</div>
+  <header id="gameHeader" class="flex items-center gap-2 px-3 py-1.5 border-b border-[rgba(90,60,30,.25)] bg-[rgba(247,240,223,.75)] flex-none">
+    <div class="ttl kai text-xl font-bold whitespace-nowrap">范進<span class="text-zhu">命運</span>棋</div>
     <div id="roundInfo" class="kai text-sm opacity-70 whitespace-nowrap"></div>
     <div class="flex-1"></div>
     <div id="timerBox" class="kai text-lg px-2 whitespace-nowrap" style="display:none">⏳ <span id="timerTxt">20:00</span></div>
     <button id="btnMode" class="btn-ink topbar-btn" title="切換 3D／2D" data-testid="btn-mode">2D</button>
     <button id="btnBgm" class="btn-ink topbar-btn" title="背景音樂開關">♪</button>
-    <button id="btnSfx" class="btn-ink topbar-btn" title="音效開關">🔔</button>
+    <button id="btnSfx" class="btn-ink topbar-btn no-phone" title="音效開關">🔔</button>
     <button class="btn-ink topbar-btn" data-open="settings" title="設定">⚙</button>
-    <button class="btn-ink topbar-btn" data-open="rules" title="玩法">📖</button>
+    <button class="btn-ink topbar-btn no-phone" data-open="rules" title="玩法">📖</button>
     <button id="btnEnd" class="btn-ink topbar-btn" title="結束並結算">🏁</button>
   </header>
+  <!-- 手機直式：精簡的考生狀態列 -->
+  <div id="miniBar"></div>
   <div id="gameMain">
     <div id="boardWrap"><div id="boardHost"></div>
+      <button id="btnZoom" class="btn-ink" style="display:none" title="放大／縮小棋盤" data-testid="btn-zoom">🔍</button>
       <div id="modeBadge" class="absolute left-2 bottom-2 text-xs px-2 py-1 rounded bg-[rgba(255,250,238,.8)] border border-[rgba(90,60,30,.3)] pointer-events-none"></div>
     </div>
     <aside id="panel">
       <!-- 目前回合 -->
-      <div class="paper-card p-3 mb-3">
+      <div class="paper-card p-3 mb-3" id="turnCard">
         <div class="flex items-center gap-2">
           <span id="curTok" class="ptok"></span>
           <div class="flex-1 min-w-0">
@@ -291,9 +394,22 @@
     <div class="paper-card w-full max-w-3xl p-5 md:p-7 fadein">
       <div class="text-center">
         <div class="kai text-sm tracking-[.4em] opacity-60">放　榜</div>
-        <h2 class="kai text-4xl md:text-5xl font-bold my-1">金榜題名</h2>
+        <h2 id="endTitle" class="kai text-4xl md:text-5xl font-bold my-1">金榜題名</h2>
+        <p id="endSub" class="kai text-lg"></p>
         <p class="text-sm opacity-70">聲望＝體面＋人情＋功名加分（秀才 +5、舉人 +10）</p>
       </div>
+      <!-- 勝利：證書 -->
+      <div id="certBox" style="display:none" class="my-5 text-center">
+        <img id="certImg" alt="范進命運棋證書" class="w-full rounded-lg shadow-lg border border-[rgba(90,60,30,.35)]">
+        <div class="flex gap-3 justify-center mt-3 flex-wrap">
+          <button class="btn-seal text-lg" id="btnCertDl" data-testid="cert-dl">⬇ 下載證書（PNG）</button>
+          <button class="btn-ink text-lg phone-only" id="btnCertOpen" data-testid="cert-open">🖼 開啟圖片（可長按儲存）</button>
+          <button class="btn-ink text-lg no-phone" id="btnCertPrint" data-testid="cert-print">🖨 列印證書</button>
+        </div>
+        <p class="phone-only text-sm opacity-75 mt-2 kai">📱 手機也可以直接<b>長按上方證書圖片</b> →「儲存影像／加入照片」。</p>
+      </div>
+      <!-- 沒拿到證書時的說明／鼓勵 -->
+      <div id="endNote" style="display:none" class="paper-card p-4 my-5 kai text-lg leading-relaxed text-center"></div>
       <div id="rankList" class="grid gap-3 my-5"></div>
       <div id="awardList" class="flex flex-wrap gap-2 justify-center mb-5"></div>
       <div class="paper-card p-4 mb-5" style="border-color:var(--zhu)">
@@ -315,6 +431,42 @@
 <div id="toast"></div>
 <script>
 'use strict';
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   ★ 證書認證者（只要改這一行）
+   ★ 「龎」字已由委託老師確認無誤（是「龎」，不是「龐」），請勿更改。
+   ★ 日後若要換認證者，改下面這行即可，證書與畫面上所有出現的地方都會一起更新。
+   ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+const CERTIFIER = '永春高中 龎海珊 老師';
+
+/* ---------- 單人模式：電腦對手難度（acc＝每題答對機率）---------- */
+const DIFFICULTY = {
+  easy:   { name:'簡單', acc:0.50, desc:'電腦約五成答對。適合第一次玩、熟悉規則（此難度不發證書）。' },
+  normal: { name:'普通', acc:0.65, desc:'電腦約六成五答對。認真讀過課文就有機會奪魁。' },
+  hard:   { name:'困難', acc:0.80, desc:'電腦約八成答對。要熟讀注釋、題解才贏得了。' }
+};
+/* 證書門檻：普通以上難度、且你至少擲過 5 次骰子（避免「簡單＋馬上結束」輕鬆拿證書） */
+const CERT_RULE = { diffs:['normal','hard'], minTurns:5 };
+
+/* ---------- 電腦對手：取材自〈范進中舉〉的人物 ----------
+   style：kind＝重情義（抉擇卡多選雪中送炭）；follow＝愛湊熱鬧（多半錦上添花）；calc＝精打細算（選對自己最划算的） */
+const AI_PERSONAS = [
+  { name:'魏好古', tok:'魏', style:'kind', tag:'同案秀才', intro:'范進的同案秀才，愛約人辦文會，講義氣。',
+    think:['容我斟酌斟酌……','以文會友，這題我溫過！','嗯……讓在下想想。'] },
+  { name:'集上高鄰', tok:'鄰', style:'follow', tag:'報喜鄰居', intro:'飛奔到集上報喜的鄰居，最愛湊熱鬧、錦上添花。',
+    think:['這個嘛……我想想！','我聽集上的人說過……','嘿，這題我知道！'] },
+  { name:'跳駝子郎中', tok:'郎', style:'calc', tag:'廟門郎中', intro:'廟門口擺攤的外科郎中，精打細算、愛說大話。',
+    think:['依在下看來……','且讓我把個脈……','這病我會治，這題嘛……'] }
+];
+/* 落敗時的鼓勵語 */
+const ENCOURAGE = [
+  '范進考了二十多次才進學。一次落榜不算什麼，再考一科！',
+  '名落孫山外，也有好風景。把答錯的題目再看一遍，下一局就是你的。',
+  '胡屠戶的臉色會變，但你讀過的書不會白讀。重新整理行囊，再戰一回！',
+  '勝敗乃兵家常事。多留意課本注釋與題解，下次金榜就寫上你的名字。'
+];
+</script>
+<script>
+'use strict';
 /* =====================================================================
    一、資料區：預設題庫、棋盤格、命運卡／世態卡
    題目皆為原創；引用之〈范進中舉〉原文（《儒林外史》）屬公有領域。
@@ -323,54 +475,54 @@
 const CATS = ['字音字形','詞義','文意理解','人物形象','寫作手法','科舉制度','作者與儒林外史','主旨'];
 
 const DEFAULT_QUESTIONS = [
-  // ── 字音字形 ──
-  {cat:'字音字形', q:'「范進唯唯連聲」中「唯唯」的讀音是？', o:['ㄨㄟˊ ㄨㄟˊ','ㄨㄟˇ ㄨㄟˇ','ㄨㄟˋ ㄨㄟˋ','ㄙㄨㄟ ㄙㄨㄟ'], a:1, e:'「唯唯」是恭敬應答的聲音，讀作ㄨㄟˇ。「唯一、唯獨」的「唯」才讀ㄨㄟˊ。'},
-  {cat:'字音字形', q:'「走出大門不多路，一腳踹在塘裡」的「踹」讀作？', o:['ㄔㄨㄞˋ','ㄉㄨㄢˋ','ㄔㄨㄞˇ','ㄓㄨㄞˋ'], a:0, e:'踹，讀ㄔㄨㄞˋ，指用腳踩、踢。范進歡喜發瘋往外跑，一腳踩進了水塘。'},
-  {cat:'字音字形', q:'「大家簇擁著要喜錢」的「簇」讀作？', o:['ㄗㄨˊ','ㄘㄨˋ','ㄘㄡˋ','ㄓㄨˊ'], a:1, e:'簇，讀ㄘㄨˋ，聚集的意思；「簇擁」是一群人圍著。常有人誤讀成ㄗㄨˊ。'},
-  {cat:'字音字形', q:'「叫我一家老小嗑西北風？」的「嗑」讀作？', o:['ㄏㄜ','ㄍㄜˊ','ㄎㄜˋ','ㄎㄜ'], a:2, e:'嗑，讀ㄎㄜˋ，此處指喝、吃。「嗑西北風」就是只能喝風、沒東西吃，胡屠戶藉此拒絕借錢。'},
-  {cat:'字音字形', q:'下列與本文有關的詞語，何者用字完全正確？', o:['在茅草蓬下燙酒','賴蝦蟆想吃天鵝肉','抱著雞一步一踱','罵得狗血噴投'], a:2, e:'應為「茅草棚」「癩蝦蟆」「狗血噴頭」。「踱」是慢步行走，寫范進賣雞時慢吞吞、東張西望的樣子。'},
+  // ── 字音字形（讀音依龍騰版注釋）──
+  {cat:'字音字形', q:'「叫我一家老小嗑西北風？」的「嗑」，課本注釋的讀音是？', o:['ㄎㄜˋ','ㄏㄜˊ','ㄍㄜˊ','ㄏㄜ'], a:1, e:'課本注釋：嗑，音ㄏㄜˊ，喝。「嗑西北風」比喻沒有東西吃。（「嗑瓜子」的嗑則讀ㄎㄜˋ。）'},
+  {cat:'字音字形', q:'「胡屠戶作難道」中「作難」的讀音是？', o:['ㄗㄨㄛˋ ㄋㄢˊ','ㄗㄨㄛˋ ㄋㄢˋ','ㄗㄨㄛ ㄋㄢˊ','ㄗㄨㄛˋ ㄋㄨㄛˊ'], a:0, e:'作難，音ㄗㄨㄛˋ ㄋㄢˊ，為難的意思。胡屠戶怕打了「天上的星宿」要遭報應，所以為難。'},
+  {cat:'字音字形', q:'「比如我這行事裡，都是些正經有臉面的人」，「行事」的「行」讀作？', o:['ㄒㄧㄥˊ','ㄏㄤˊ','ㄏㄤˋ','ㄒㄧㄥˋ'], a:1, e:'行事，指行業，「行」音ㄏㄤˊ。胡屠戶把殺豬這一行說成「正經有臉面的人」，自抬身價。'},
+  {cat:'字音字形', q:'「走出大門不多路，一腳踹在塘裡」的「踹」讀作？', o:['ㄔㄨㄞˋ','ㄉㄨㄢˋ','ㄔㄨㄞˇ','ㄓㄨㄞˋ'], a:0, e:'踹，音ㄔㄨㄞˋ，踩踏。范進歡喜發瘋往外跑，一腳踩進了水塘。'},
+  {cat:'字音字形', q:'下列與本文有關的詞語，何者用字完全正確？', o:['在茅草蓬下燙酒','賴蝦蟆想吃天鵝肉','抱著雞一步一踱','罵得狗血噴投'], a:2, e:'應為「茅草棚」「癩蝦蟆」「狗血噴頭」。「踱」音ㄉㄨㄛˋ，慢步行走，寫范進賣雞時慢吞吞、東張西望的樣子。'},
   // ── 詞義 ──
-  {cat:'詞義', q:'胡屠戶說：「不知因我積了什麼德，帶挈你中了個相公。」其中「帶挈」的意思是？', o:['攜帶禮物前來','提攜、讓人沾光','拖累、連累','哄騙、欺瞞'], a:1, e:'「挈」是提，「帶挈」就是提攜。胡屠戶把女婿中秀才歸功於自己積德，又自大又好笑。'},
-  {cat:'詞義', q:'本文中的「相公」與「老爺」，分別是對哪兩種身分的稱呼？', o:['秀才／舉人','丈夫／父親','舉人／進士','宰相／知縣'], a:0, e:'科舉時代稱秀才為「相公」、稱舉人為「老爺」。所以胡屠戶罵范進：中了相公，就「痴心就想中起老爺來」。'},
-  {cat:'詞義', q:'鄰居勸胡屠戶：「你沒奈何，權變一權變。」其中「權變」的意思是？', o:['動用權力','改變心意','權衡變通、臨機應變','權衡後放棄'], a:2, e:'權變是權衡變通。胡屠戶怕「星宿打不得」，鄰居勸他事急從權，變通一下去打醒女婿。'},
-  {cat:'詞義', q:'報帖寫「捷報貴府老爺范諱進」，在「進」字前加「諱」的作用是？', o:['表示忌諱、不吉利','表示尊敬，不敢直呼其名','表示隱瞞身分','表示名字寫錯了'], a:1, e:'古人稱呼他人時在名字前加「諱」，表示尊敬，不敢直呼其名。'},
+  {cat:'詞義', q:'胡屠戶說：「不知因我積了什麼德，帶挈你中了個相公。」其中「帶挈」的意思是？', o:['攜帶禮物前來','原意為帶領，引申為提攜','拖累、連累','哄騙、欺瞞'], a:1, e:'帶挈原意為帶領，這裡引申為提攜；挈，音ㄑㄧㄝˋ，提。胡屠戶把女婿中秀才歸功於自己積德，又自大又好笑。'},
+  {cat:'詞義', q:'本文中的「相公」與「老爺」，分別是對哪兩種身分的稱呼？', o:['秀才／舉人','丈夫／父親','舉人／進士','宰相／知縣'], a:0, e:'「相公」是對秀才的尊稱；明清時俗稱舉人為「老爺」。所以胡屠戶罵范進：中了相公，「如今痴心就想中起老爺來」。'},
+  {cat:'詞義', q:'「屠戶被眾人局不過」的「局」意思是？', o:['設局陷害','逼迫','局面','拘束'], a:1, e:'「局」在此是逼迫。眾人一再相逼，胡屠戶推不掉，只好連斟兩碗酒壯膽。'},
+  {cat:'詞義', q:'「范進慌忙抱了雞，走出門去。才去不到兩個時候」，這裡的「時候」是指？', o:['一會兒','時辰','季節','時機'], a:1, e:'「時候」在此指時辰。古代一個時辰約等於現在兩小時，可見報錄人來得很快。'},
+  {cat:'詞義', q:'報帖寫「捷報貴府老爺范諱進」，在「進」字前加「諱」的作用是？', o:['表示忌諱、不吉利','表示尊敬，不敢直呼其名','表示隱瞞身分','表示名字寫錯了'], a:1, e:'「諱」此指名字。古人稱呼他人時，常在名前加「諱」字，表示尊敬，不敢直呼其名。'},
+  {cat:'詞義', q:'「如今只消他怕的這個人來打他一個嘴巴」中「消」的意思是？', o:['消除','需要','消息','消遣'], a:1, e:'「消」是「需要」二字的合音連讀，「只消」就是「只需要」。'},
   // ── 文意理解 ──
-  {cat:'文意理解', q:'范進考中秀才時是幾歲？', o:['二十歲','三十六歲','五十四歲','六十歲'], a:2, e:'范進二十歲開始應考，前後考了二十餘次，直到五十四歲才中秀才，同年又中了舉人。'},
-  {cat:'文意理解', q:'出榜那天，范進為什麼抱著母雞到集上？', o:['要送給胡屠戶賠罪','家裡沒有早飯米，母親要他賣雞買米','要拿去拜文昌帝君','鄰居託他代賣'], a:1, e:'原文：「家裡沒有早飯米，母親吩咐范進道：『我有一隻生蛋的母雞，你快拿集上去賣了，買幾升米來煮餐粥吃。』」窮困正為後文的轉變鋪墊。'},
-  {cat:'文意理解', q:'鄰居跑到集上告訴范進「你中了舉」，范進最初的反應是？', o:['立刻丟下雞跑回家','以為鄰居哄他，裝作沒聽見繼續賣雞','當場歡喜發瘋','請鄰居幫忙把雞賣掉'], a:1, e:'范進「道是哄他，只裝不聽見」，還說「莫誤了我賣雞」。多年落榜，讓他根本不敢相信。'},
-  {cat:'文意理解', q:'范進歡喜發瘋後，報錄人出了什麼主意？', o:['請郎中開藥方','讓他最怕的人打他一個嘴巴，說中舉是騙他的','把報帖撕掉','送他到廟裡求神'], a:1, e:'報錄人說他「歡喜很了，痰湧上來，迷了心竅」，只要讓他怕的人打一嘴巴、嚇他一嚇，把痰吐出來就會明白。'},
-  {cat:'文意理解', q:'胡屠戶打完范進後，手掌彎不過來。他自己認為原因是？', o:['打得太用力扭傷了','天上的文曲星打不得，菩薩計較起來了','殺豬太久得了職業病','郎中的膏藥有問題'], a:1, e:'胡屠戶懊惱道：「果然天上文曲星是打不得的，而今菩薩計較起來了！」寫出他的迷信，也是作者的幽默諷刺。'},
-  {cat:'文意理解', q:'報帖寫范進高中「第七名亞元」。關於「亞元」，下列何者正確？', o:['亞元就是鄉試第七名的正式名稱','亞元原指鄉試第二名，報錄人這樣寫是有意討好','亞元是殿試第二名','亞元是會試第一名'], a:1, e:'「亞元」本指鄉試第二名。范進考第七名卻被稱亞元，是報錄人為了討喜錢而吹捧。'},
-  {cat:'文意理解', q:'胡屠戶前後兩次上門賀喜，帶的禮物分別是？', o:['一副大腸和一瓶酒／七、八斤肉和四、五千錢','一隻母雞／一斗白米','一瓶酒／五十兩銀子','半盆豬油／幾升米'], a:0, e:'中秀才時只帶一副大腸、一瓶酒；中舉後帶七、八斤肉和四、五千錢。禮物輕重的落差，正是「前倨後恭」的證據。'},
-  {cat:'文意理解', q:'「自古無場外的舉人」這句話的意思是？', o:['舉人都住在考場外面','不進考場就不可能中舉，總要試了才有機會','考場外的人都比舉人聰明','舉人不必參加考試'], a:1, e:'范進借不到盤纏仍想應考，心想：「自古無場外的舉人，如不進去考他一考，如何甘心？」'},
+  {cat:'文意理解', q:'范進考中秀才時是幾歲？', o:['二十歲','三十六歲','五十四歲','六十歲'], a:2, e:'范進從二十歲參加科舉，歷經二十餘次挫敗，五十四歲才考中秀才，同年又中了舉人。'},
+  {cat:'文意理解', q:'出榜那天，范進為什麼抱著母雞到集上？', o:['要送給胡屠戶賠罪','家裡沒有早飯米，母親要他賣雞買米','要拿去拜文曲星','鄰居託他代賣'], a:1, e:'原文：母親吩咐范進：「我有一隻生蛋的母雞，你快拿集上去賣了，買幾升米來煮餐粥吃。」中舉前的窮困，正為後文的轉變鋪墊。'},
+  {cat:'文意理解', q:'鄰居跑到集上告訴范進「恭喜你中了舉人」，范進最初的反應是？', o:['立刻丟下雞跑回家','以為鄰居哄他，裝作沒聽見繼續賣雞','當場歡喜發瘋','請鄰居幫忙把雞賣掉'], a:1, e:'范進「道是哄他，只裝不聽見」，還說「莫誤了我賣雞」。屢試不第的經驗，讓他根本不敢相信。'},
+  {cat:'文意理解', q:'范進歡喜發瘋後，報錄人出了什麼主意？', o:['請郎中開藥方','讓他最怕的人打他一個嘴巴，說中舉是騙他的','把報帖撕掉','送他到廟裡求神'], a:1, e:'報錄人說他「歡喜很了，痰湧上來，迷了心竅」，只要他怕的人打一嘴巴、嚇他一嚇，把痰吐出來就明白了。'},
+  {cat:'文意理解', q:'眾人要胡屠戶去打醒范進，胡屠戶為什麼一開始猶豫為難？', o:['怕打傷女兒的丈夫要賠錢','認為女婿做了老爺就是天上的星宿，打了會被閻王懲罰','他正忙著賣肉沒空','他根本不怕范進發瘋'], a:1, e:'胡屠戶說：「天上的星宿是打不得的。」怕被閻王「打一百鐵棍，發在十八層地獄」。迷信又勢利，前後態度判若兩人。'},
+  {cat:'文意理解', q:'胡屠戶前後兩次上門賀喜，帶的禮物分別是？', o:['一副大腸和一瓶酒／七、八斤肉和四、五千錢','一隻母雞／一斗白米','一瓶酒／五十兩銀子','半盆豬油／幾升米'], a:0, e:'中秀才時只帶一副大腸、一瓶酒；中舉後帶七、八斤肉和四、五千錢。禮物輕重的落差，就是「前倨後恭」的證據。'},
   // ── 人物形象 ──
-  {cat:'人物形象', q:'面對胡屠戶的辱罵，范進多半「唯唯連聲」或默默離開。這顯示范進的性格是？', o:['剛直不阿','懦弱、逆來順受','足智多謀','尖酸刻薄'], a:1, e:'長年落榜又窮困，范進在丈人面前毫無地位，只能恭敬稱是，不敢頂嘴。'},
+  {cat:'人物形象', q:'面對胡屠戶的教訓，范進只說「岳父見教的是」，平日也多「唯唯連聲」。這顯示范進？', o:['剛直不阿','懦弱卑微、逆來順受','足智多謀','尖酸刻薄'], a:1, e:'長年落第又窮困，范進在丈人面前毫無地位，只能恭敬稱是，不敢爭辯。'},
   {cat:'人物形象', q:'胡屠戶說「這些中老爺的，都是天上的文曲星」，又罵范進「尖嘴猴腮」。他評價人的標準主要是？', o:['品德與學問','功名與財富地位','孝順與否','勤勞與否'], a:1, e:'他用功名、財富衡量人：范進沒中舉時是「現世寶」，中舉後就成了「才學又高，品貌又好」。'},
-  {cat:'人物形象', q:'胡屠戶先罵范進「尖嘴猴腮」，後誇他「品貌又好」。最適合形容胡屠戶的成語是？', o:['表裡如一','前倨後恭','剛正不阿','虛懷若谷'], a:1, e:'前倨後恭：先傲慢、後恭敬，正是胡屠戶趨炎附勢的寫照。'},
-  {cat:'人物形象', q:'胡屠戶打了范進一巴掌，「心裡到底還是怕的，那手早顫起來」。這個細節寫出胡屠戶？', o:['下手太重而內疚','外表凶狠，內心迷信又畏懼功名權勢','身體虛弱','其實非常疼愛女婿'], a:1, e:'平日凶神惡煞，面對「老爺」卻怕得發抖。他的凶狠是裝出來的，真正敬畏的是功名。'},
+  {cat:'人物形象', q:'胡屠戶先罵范進「尖嘴猴腮」，後誇他「品貌又好」。最適合形容胡屠戶的成語是？', o:['表裡如一','前倨後恭','剛正不阿','虛懷若谷'], a:1, e:'前倨後恭：先傲慢、後恭敬。胡屠戶的轉變是全文最強烈的對比，反映世人趨炎附勢。'},
+  {cat:'人物形象', q:'胡屠戶打了范進一巴掌，「心裡到底還是怕的，那手早顫起來，不敢打第二下」。這個細節寫出胡屠戶？', o:['下手太重而內疚','外表凶狠，內心迷信又畏懼功名權勢','身體虛弱','其實非常疼愛女婿'], a:1, e:'平日凶惡，面對「老爺」卻怕得發抖。這種忐忑心情的細節，把他粗鄙勢利的形象凸顯出來。'},
   {cat:'人物形象', q:'范進清醒後，「見丈人在跟前，恐怕又要來罵」。這句話透露了什麼？', o:['范進中舉後變得驕傲','長期受丈人欺壓，即使中舉仍心存畏懼','范進的瘋病還沒好','范進打算報復胡屠戶'], a:1, e:'一句心理描寫，寫盡范進多年被罵的陰影；而胡屠戶下一刻就改口叫「賢婿老爺」，更顯滑稽。'},
   // ── 寫作手法 ──
-  {cat:'寫作手法', q:'本文塑造胡屠戶形象，最主要的方法是？', o:['大量引用典故','透過人物對話（語言描寫）','用景物描寫襯托','作者直接評論'], a:1, e:'胡屠戶的粗俗、勢利，幾乎全靠他自己的話呈現──這正是本課學習重點：運用對話塑造人物。'},
-  {cat:'寫作手法', q:'鄰居說：「少頃范老爺洗臉，還要洗下半盆豬油來。」運用了哪一種修辭？', o:['譬喻','誇飾','排比','設問'], a:1, e:'臉上不可能洗出半盆豬油，這是誇飾，取笑胡屠戶滿手油膩，也調侃那一巴掌打得「親切」。'},
-  {cat:'寫作手法', q:'范進中舉前斷糧兩、三天無人聞問；中舉後鄰居送雞蛋、白酒、斗米。作者並列兩者，主要運用？', o:['對比','倒敘','象徵','頂真'], a:0, e:'一冷一熱前後對照，凸顯世態炎涼、趨炎附勢。'},
-  {cat:'寫作手法', q:'作者沒有直接批評科舉，而是讓人物的言行自己暴露荒謬。這種寫法是？', o:['直抒胸臆','寓諷刺於敘事','借景抒情','托物言志'], a:1, e:'《儒林外史》以客觀描寫寄寓諷刺，讀者先是發笑，回頭才感到心酸，諷刺因此更深刻。'},
-  {cat:'寫作手法', q:'胡屠戶把「癩蝦蟆想吃天鵝肉」改說成「想天鵝屁吃」，效果是？', o:['讓語氣更文雅','語氣更粗俗鄙夷，貼合屠戶身分','表示他記錯了俗語','暗示他其實很欣賞范進'], a:1, e:'連「天鵝屁」都別想吃，比原本的俗語更刻薄，也符合市井屠戶的口吻。'},
-  {cat:'寫作手法', q:'「屠戶見女婿衣裳後襟滾皺了許多，一路低著頭替他扯了幾十回。」主要是哪一種描寫？', o:['肖像描寫','景物描寫','動作細節描寫','心理描寫'], a:2, e:'「低著頭」「扯了幾十回」的動作細節，把胡屠戶的巴結諂媚寫得活靈活現。'},
+  {cat:'寫作手法', q:'本文刻劃胡屠戶最主要的方法是？', o:['大量引用典故','透過他的對話與一連串細節動作','用景物描寫襯托','作者直接評論'], a:1, e:'胡屠戶的粗鄙勢利，靠他自己的話（罵「現世寶」、誇「賢婿老爺」）和小動作（手顫、討膏藥、扯衣襟）呈現，形象鮮活。'},
+  {cat:'寫作手法', q:'鄰居說：「少頃范老爺洗臉，還要洗下半盆豬油來！」運用了哪一種修辭？', o:['譬喻','誇飾','排比','設問'], a:1, e:'臉上不可能洗出半盆豬油，這是誇飾，取笑胡屠戶滿手油膩，也調侃那一巴掌打得「親切」。'},
+  {cat:'寫作手法', q:'范進中舉前家中斷糧無人聞問；中舉後鄰居送雞蛋、白酒、斗米。作者並列兩者，主要運用？', o:['對比','倒敘','象徵','頂真'], a:0, e:'以中舉前後的人物言行作強烈對比，冷熱分明，反映世態炎涼。'},
+  {cat:'寫作手法', q:'作者沒有任何一句議論或指責，而是客觀描寫角色言行，讓讀者自己感受科舉的毒害。這種寫法是？', o:['直抒胸臆','寓諷刺於敘事，諷刺委婉深刻','借景抒情','托物言志'], a:1, e:'不直接批判，而讓人物的言行自曝其醜，諷刺的力道反而更強烈。'},
+  {cat:'寫作手法', q:'胡屠戶把「癩蝦蟆想吃起天鵝肉」改說成「想天鵝屁吃」，效果是？', o:['讓語氣更文雅','意指連天鵝屁也休想吃到，語氣更加鄙俚','表示他記錯了俗語','暗示他其實很欣賞范進'], a:1, e:'連「天鵝屁」都別想吃，比原俗語更刻薄鄙俚，也符合市井屠戶的口吻。'},
+  {cat:'寫作手法', q:'「屠戶見女婿衣裳後襟滾皺了許多，一路低著頭替他扯了幾十回。」主要是哪一種描寫？', o:['肖像描寫','景物描寫','動作細節描寫','心理描寫'], a:2, e:'「低著頭」「扯了幾十回」的動作細節，再加上回家時高喊「老爺回府了！」，簡直是鬧劇的鏡頭。'},
   // ── 科舉制度 ──
-  {cat:'科舉制度', q:'清代科舉考試由低到高的順序是？', o:['鄉試→童試→會試→殿試','童試→鄉試→會試→殿試','童試→會試→鄉試→殿試','會試→童試→鄉試→殿試'], a:1, e:'童試考中為生員（秀才）→鄉試考中為舉人→會試考中為貢士→殿試考中為進士。'},
-  {cat:'科舉制度', q:'鄉試考中的人稱為什麼？第一名又叫什麼？', o:['秀才／案首','舉人／解元','貢士／會元','進士／狀元'], a:1, e:'鄉試考中稱舉人，第一名稱解元。范進這次就是在廣東鄉試中了舉人。'},
-  {cat:'科舉制度', q:'「連中三元」指連續考中哪三個第一名？', o:['解元、會元、狀元','狀元、榜眼、探花','秀才、舉人、進士','案首、解元、會元'], a:0, e:'鄉試第一解元、會試第一會元、殿試第一狀元，三者連中稱「連中三元」。狀元、榜眼、探花則是殿試前三名。'},
-  {cat:'科舉制度', q:'關於明清考場的「號舍」，下列敘述何者正確？', o:['寬敞舒適，可攜帶家眷','考生在窄小的號舍裡連考數日，吃喝睡都在裡面','每天考完都可以回家休息','只在童試時使用'], a:1, e:'鄉試、會試連考三場、每場三天，考生不得離開窄小的號舍，白天以木板為桌椅，晚上屈身而睡。'},
-  {cat:'科舉制度', q:'下列關於科舉的敘述，何者正確？', o:['考生年齡有嚴格上限','科舉不限年齡，白髮童生並不罕見','考上秀才就能直接當官','鄉試每年都舉行'], a:1, e:'科舉不限年齡，許多人從黑髮考到白髮；鄉試三年一次；秀才只是功名的起點，中舉後才有機會出仕。'},
+  {cat:'科舉制度', q:'「范進進學回家」中的「進學」是指？', o:['童生考取生員（秀才），入府學或縣學讀書','進入京城的太學','考中舉人','開始教私塾'], a:0, e:'明清科舉制度中，童生考取生員（也稱秀才）入府學或縣學讀書，稱「進學」。'},
+  {cat:'科舉制度', q:'關於明清的「鄉試」，下列何者正確？', o:['每年在京城舉行','每三年各省秀才集於省城考試，考中者稱舉人','童生就可以報考','考中者稱為進士'], a:1, e:'鄉試每三年一次，由各省秀才到省城應考，考中稱舉人，所以「鄉試年」對秀才格外重要。'},
+  {cat:'科舉制度', q:'報帖說范進「高中廣東鄉試第七名亞元」。下列何者正確？', o:['第七名的正式名稱就是亞元','鄉試第一名稱解元、第二名稱亞元，稱第七名為亞元是奉承之詞','亞元是殿試第二名','亞元是會試第一名'], a:1, e:'鄉試第一名稱「解元」，第二名稱「亞元」，第三名以下無「元」之稱。報錄人把第七名說成亞元，是為了討喜錢的奉承話。'},
+  {cat:'科舉制度', q:'范進口中的「宗師」，是指誰？', o:['考中秀才的人對主考官的尊稱','私塾裡的教書先生','宗族中的長輩','廟裡的住持'], a:0, e:'明清時考中秀才者，稱主考官為宗師，以表示尊敬。胡屠戶卻說范進的秀才是「宗師看見你老，不過意，捨與你的」。'},
+  {cat:'科舉制度', q:'關於明清考場的「號舍」，下列敘述何者正確？', o:['寬敞舒適，可攜帶家眷','考生在窄小的號舍裡連考數日，吃喝睡都在裡面','每天考完都可以回家休息','只在童試時使用'], a:1, e:'鄉試、會試連考三場、每場三天，考期結束前不得離開號舍。白天以兩塊木板為桌椅，晚上併成臥榻屈身而睡。'},
   // ── 作者與儒林外史 ──
-  {cat:'作者與儒林外史', q:'〈范進中舉〉選自哪一部書？作者是誰？', o:['《西遊記》／吳承恩','《儒林外史》／吳敬梓','《紅樓夢》／曹雪芹','《聊齋誌異》／蒲松齡'], a:1, e:'本文節選自《儒林外史》第三回，作者吳敬梓，字敏軒，一字文木，安徽全椒人，清代小說家。'},
-  {cat:'作者與儒林外史', q:'關於《儒林外史》，下列何者正確？', o:['以神魔鬥法為主的章回小說','中國最負盛名的諷刺小說，批判科舉取士的弊害','描寫三國爭霸的歷史小說','記錄作者童年的散文集'], a:1, e:'《儒林外史》是章回小說，藉讀書人熱中功名的醜態諷刺科舉制度。故事設在明代，其實影射作者身處的清代。'},
-  {cat:'作者與儒林外史', q:'吳敬梓三十六歲時被推薦參加「博學鴻詞科」，他的態度是？', o:['欣然赴考並高中','推辭不就，從此無意仕進','赴考落第後發瘋','改考武舉'], a:1, e:'他推辭不考，從此不再追求官位；後來不善營生，耗盡家產，晚年潦倒，客死揚州。'},
+  {cat:'作者與儒林外史', q:'關於《儒林外史》，下列何者正確？', o:['以神魔鬥法為主的章回小說','頗負盛名的章回體諷刺小說，揭露禮教與科舉制度的弊害','描寫三國爭霸的歷史小說','記錄作者童年的散文集'], a:1, e:'《儒林外史》以寫實手法，嘲諷思想迂腐、道德墮落的士大夫階層，揭露禮教與科舉制度的弊害，書中描寫近兩百位人物。'},
+  {cat:'作者與儒林外史', q:'吳敬梓三十六歲時，安徽巡撫推薦他參加「博學鴻詞科」，他的反應是？', o:['欣然赴考並高中','託病推辭，從此絕意仕進','赴考落第後發瘋','改考武舉'], a:1, e:'吳敬梓託病推辭，從此絕意仕進；他為人慷慨好施卻不善營生，晚年潦倒，客死揚州。'},
+  {cat:'作者與儒林外史', q:'《儒林外史》的故事背景假託為明代，作者真正嘲諷的是？', o:['唐代的藩鎮','宋代的黨爭','作者身處的清代','元代的異族統治'], a:2, e:'背景假託明代，其實是在嘲諷作者身處的清代，藉此批判科舉取士的制度。'},
   // ── 主旨 ──
-  {cat:'主旨', q:'下列何者最能說明本文主旨？', o:['讚美范進堅持不懈終於成功','藉范進中舉前後的遭遇，諷刺科舉對讀書人的毒害與世態炎涼','強調孝順母親的重要','描寫清代市集的熱鬧'], a:1, e:'本文透過范進喜極而瘋、眾人前後態度的轉變，反映科舉制度下的社會現實。'},
+  {cat:'主旨', q:'下列何者最能說明本文主旨？', o:['讚美范進堅持不懈終於成功','諷刺學子對科舉功名的熱中，以及世人趨炎附勢的醜態','強調孝順母親的重要','描寫清代市集的熱鬧'], a:1, e:'本文藉范進中舉的故事，諷刺學子熱中功名與世人趨炎附勢的醜態。'},
   {cat:'主旨', q:'哪一句俗語最能概括鄰居們在范進中舉前後的轉變？', o:['貧居鬧市無人問，富在深山有遠親','遠親不如近鄰','一分耕耘，一分收穫','近朱者赤，近墨者黑'], a:0, e:'窮時無人聞問，發達了人人來親近──正是范進中舉前後的寫照。'},
-  {cat:'主旨', q:'是非題：作者在文中直接發表議論，痛罵科舉制度。', o:['○ 正確','✕ 錯誤'], a:1, e:'錯。全文沒有直接議論，而是透過客觀描寫，讓讀者自己體會其中的諷刺。'},
-  {cat:'主旨', q:'范進盼了三十多年終於中舉，卻歡喜得發瘋。這個情節最值得我們反思的是？', o:['考試一定要考第一','把功名當成人生唯一目標，可能讓人失去平衡','不要相信報錄人','讀書人不應該賣雞'], a:1, e:'考試是人生的一部分，不是全部。合宜的求學態度，是為了充實自己，而不是被成敗綁架。'}
+  {cat:'主旨', q:'是非題：作者在文中直接發表議論，痛罵科舉制度。', o:['○ 正確','✕ 錯誤'], a:1, e:'錯。全文沒有一句議論或指責，而是透過客觀描寫，讓讀者自行感受科舉對士人的殘害。'},
+  {cat:'主旨', q:'「噫！好了！我中了！」這六個字背後，最能讓人體會到的是？', o:['范進天生個性樂觀','長期鬱積的辛酸屈辱與眼前的狂喜一齊湧上心頭，可見科舉對讀書人的壓迫','范進其實早知道自己會中','中舉是件無關緊要的小事'], a:1, e:'作者從喜極而瘋的一刻，寫出范進長久以來的悲苦，讓人反思讀書與考試的意義。'}
 ];
 
 /* ---------- 身分（功名）---------- */
@@ -416,7 +568,7 @@ const TILES = [
   { name:'應考半生', type:'start', story:'范進二十歲起應考，前後考了二十餘次。每回到這裡，又是一年。', pass:'又熬過一年，鄰里多少有些同情：人情 +1。' },
   { name:'寒窗苦讀', type:'q', cats:['字音字形','詞義'], story:'青燈黃卷，苦讀不輟。',
     effect:(p,ok)=> ok ? { msg:'學問又進一步。', d:{timian:1} } : { msg:'這題沒答好，再讀一遍吧。' } },
-  { name:'童試', type:'exam', cats:['科舉制度','字音字形'], story:'童試考中稱「生員」，俗稱秀才。范進直到五十四歲才考中。',
+  { name:'童試', type:'exam', cats:['科舉制度','字音字形'], story:'童生考取生員（也稱秀才），入府學或縣學讀書，稱「進學」。范進直到五十四歲才考中。',
     eligible:p=>p.rank===0,
     effect:(p,ok)=>{
       if (p.rank===0) return ok ? { msg:'進學了！你中了秀才，成了人人口中的「相公」。', d:{timian:3}, rank:1 } : { msg:'童試落第，又得再熬一年。', d:{timian:-1} };
@@ -428,13 +580,13 @@ const TILES = [
     effect:(p,ok)=>butcherEffect(p,ok) },
   { name:'命運', type:'fate', story:'抽一張命運卡。' },
   { name:'同案文會', type:'q', cats:['作者與儒林外史','文意理解'], story:'魏好古約了一班同案的朋友，因是鄉試年，做了幾個文會。',
-    effect:(p,ok)=> ok ? { msg:'以文會友，結交了幾位同案。', d:{renqing:2} } : { msg:'文會上答不上話，只交到一個朋友。', d:{renqing:1} } },
+    effect:(p,ok)=> ok ? { msg:'在文會上切磋學問，結交了幾位同案。', d:{renqing:2} } : { msg:'文會上答不上話，只交到一個朋友。', d:{renqing:1} } },
   { name:'借盤纏', type:'butcher', cats:['詞義','寫作手法'], story:'范進沒有盤費，去同丈人商議，被胡屠戶「一口啐在臉上，罵了一個狗血噴頭」。',
     effect:(p,ok)=> huAtt(p) < 80
       ? { msg:'胡屠戶一口啐在你臉上：「我一天殺一個豬還賺不得錢把銀子，都把與你去丟在水裡？」', d:{timian: ok?-1:-2}, tag:'scold' }
-      : { msg:'胡屠戶雙手奉上盤纏：「老爺要用錢，儘管拿去！」', d:{renqing:2}, tag:'flatter' } },
+      : { msg:'胡屠戶雙手奉上盤纏，連聲說老爺要用錢只管拿去。', d:{renqing:2}, tag:'flatter' } },
   { name:'世態', type:'world', story:'抽一張世態卡。' },
-  { name:'鄉試', type:'exam', cats:['科舉制度','文意理解'], story:'范進瞞著丈人，到城裡鄉試。鄉試三年一次，考中稱舉人。',
+  { name:'鄉試', type:'exam', cats:['科舉制度','文意理解'], story:'范進瞞著丈人，到城裡鄉試。鄉試每三年一次，各省秀才集於省城應考，考中稱舉人。',
     eligible:p=>p.rank===1,
     effect:(p,ok)=>{
       if (p.rank===0) return ok ? { msg:'你還只是童生，沒有資格進鄉試考場。在場外替考生搬行李，結了點人緣。', d:{renqing:1} } : { msg:'童生進不了鄉試考場，只能在外頭張望。' };
@@ -458,11 +610,11 @@ const TILES = [
   { name:'眾人商議', type:'q', cats:['人物形象','文意理解'], story:'報錄人出主意：只消他怕的人來打他一個嘴巴，就明白了。',
     effect:(p,ok)=> ok ? { msg:'你出了個好主意，眾人都說「妙得緊」。', d:{renqing:1, timian:1} } : { msg:'七嘴八舌，沒人聽你的。' } },
   { name:'世態', type:'world', story:'抽一張世態卡。' },
-  { name:'屠戶巴掌', type:'butcher', cats:['人物形象','寫作手法'], story:'胡屠戶凶神一般走到跟前：「該死的畜生，你中了什麼！」一個嘴巴打將去。',
+  { name:'屠戶巴掌', type:'butcher', cats:['人物形象','寫作手法'], story:'胡屠戶凶神般走到跟前，說道：「該死的畜生！你中了什麼？」一個嘴巴打將去。',
     effect:(p,ok)=> p.rank>=2
       ? { msg:'胡屠戶壯著膽子打了你一巴掌，你清醒了！他的手卻彎不過來，連忙討了個膏藥貼著。', d:{timian:2, renqing:1}, tag:'flatter' }
       : butcherEffect(p,ok) },
-  { name:'文曲星君', type:'q', cats:['詞義','人物形象'], story:'「這些中老爺的，都是天上的文曲星。」文曲星是傳說中主掌文運的星宿。',
+  { name:'文曲星君', type:'q', cats:['詞義','人物形象'], story:'「這些中老爺的，都是天上的文曲星。」文曲星是主管文運的星宿，也叫文昌星、文星。',
     effect:(p,ok)=> ok ? { msg:'文曲星照耀，你文思泉湧。', d:{timian:1} } : { msg:'文曲星今天不在家。' } },
   { name:'賢婿老爺', type:'butcher', cats:['人物形象','寫作手法'], story:'胡屠戶上前道：「賢婿老爺，方才不是我敢大膽，是你老太太的主意……」',
     effect:(p,ok)=> huAtt(p) >= 80
@@ -483,14 +635,14 @@ const FATE_CARDS = [
   { title:'號舍九日', text:'鄉試連考三場、每場三天，吃喝拉撒睡都在窄小的號舍裡。你熬得頭昏眼花。', note:'號舍白天以兩塊木板當桌椅，晚上併成床，只能屈身而睡。', run:p=>({ msg:'體力透支，但同案彼此照應。', d:{timian:-1, renqing:1} }) },
   { title:'白髮童生', text:'你在考場遇到一位白髮蒼蒼的老童生，他說這是第四十次應考。', note:'科舉不限年齡，清代禮遇老年考生，「百歲童生」時有所聞。', run:p=>({ msg:'被他的毅力感動，也開始思考考試的意義。', d:{timian:1} }) },
   { title:'拜文昌帝君', text:'考前拜文昌帝君，供上「蔥」（聰明）、「包子、粽子」（包中）。', note:'文昌帝君是主掌文運的神，臺灣許多廟宇都有奉祀。', run:p=>({ msg:'心安多了！下一題可免費刪去一個錯誤選項。', freeHint:1 }) },
-  { title:'亞元的真相', text:'報錄人把「第七名」說成「亞元」，你被捧得飄飄然。', note:'亞元本指鄉試第二名，報錄人是有意討好，好多拿喜錢。', run:p=>({ msg:'虛名換來好心情，卻得打賞喜錢。', d:{timian:1, renqing:-1} }) },
+  { title:'亞元的真相', text:'報錄人把「第七名」說成「亞元」，你被捧得飄飄然。', note:'鄉試第一名稱解元、第二名稱亞元，第三名以下無「元」之稱。報錄人稱第七名為亞元，是奉承之詞。', run:p=>({ msg:'虛名換來好心情，卻得打賞喜錢。', d:{timian:1, renqing:-1} }) },
   { title:'歡喜瘋了', text:'你一時得意忘形，「自己把兩手拍了一下，笑了一聲道：『噫！好了！我中了！』」', note:'范進喜極而瘋，是全文的轉折，也是最諷刺的一幕。',
     run:p=> p.rank>=1 ? { msg:'你拍著手往外飛跑……休息一回合。', skip:1 } : { msg:'還好你還沒中，暫時不必擔心發瘋。鄰居覺得你很穩重。', d:{renqing:1} } },
   { title:'五更迎豬', text:'胡屠戶「從五更鼓就往東頭集上迎豬」。你一早跟著去碰碰運氣。', note:'五更約是凌晨三點到五點。', run:p=>({ msg:'直接前往「屠戶巴掌」。', goto:18 }) },
-  { title:'連中三元', text:'聽說有人解元、會元、狀元連中三元，你羨慕得一夜沒睡，決定再拚一把！', note:'解元＝鄉試第一、會元＝會試第一、狀元＝殿試第一。', run:p=>({ msg:'再擲一次骰子！', extra:true }) },
-  { title:'辭薦不就', text:'吳敬梓三十六歲時被巡撫推薦參加博學鴻詞科，卻推辭不就。你也學他看淡功名。', note:'吳敬梓從此無意仕進，把見聞寫成《儒林外史》。', run:p=>({ msg:'清高的名聲傳開了，但胡屠戶覺得你傻。', d:{timian:2, renqing:-1} }) },
+  { title:'連中三元', text:'聽說有人解元、會元、狀元連中三元，你羨慕得一夜沒睡，決定再拚一把！', note:'（課外延伸）解元＝鄉試第一、會元＝會試第一、狀元＝殿試第一。課本注釋只提到：鄉試第一名稱解元、第二名稱亞元。', run:p=>({ msg:'再擲一次骰子！', extra:true }) },
+  { title:'託病辭薦', text:'吳敬梓三十六歲時，安徽巡撫推薦他參加博學鴻詞科，他卻託病推辭。你也學他看淡功名。', note:'吳敬梓從此絕意仕進，把見聞寫成《儒林外史》。', run:p=>({ msg:'清高的名聲傳開了，但胡屠戶覺得你傻。', d:{timian:2, renqing:-1} }) },
   { title:'賣雞救命', text:'「我已是餓得兩眼都看不見了！」家裡又沒米，母親叫你抱雞上集。', note:'中舉前後的貧富落差，是全文對比的基礎。', run:p=>({ msg:'前往「抱雞賣集」。', goto:12 }) },
-  { title:'京報連登黃甲', text:'報帖上寫著「京報連登黃甲」，祝你接連考中會試、殿試。', note:'黃甲：甲科進士的名冊以黃紙書寫，也稱「金榜」。', run:p=>({ msg:'吉祥話人人愛聽。', d:{renqing:2} }) },
+  { title:'京報連登黃甲', text:'報帖上寫著「京報連登黃甲」，祝你接連考中會試、殿試。', note:'京報：京城傳來的報帖。黃甲：用黃紙書寫的進士榜單，也稱「金榜」。', run:p=>({ msg:'吉祥話人人愛聽。', d:{renqing:2} }) },
   { title:'落第還鄉', text:'放榜了，榜上沒有你的名字。鄰居在背後竊竊私語。', note:'范進應考二十餘次，屢試不第，才有後來的喜極而瘋。',
     run:p=> p.rank>=2 ? { msg:'你早已是舉人，不必再為此煩惱。', d:{timian:1} } : { msg:'又是一年白費。', d:{timian:-2} } }
 ];
@@ -499,25 +651,25 @@ const FATE_CARDS = [
 const WORLD_CARDS = [
   { title:'錦上添花', text:'「眾鄰居有拿雞蛋來的，有拿白酒來的，也有背了斗米來的，也有捉兩隻雞來的。」', note:'錦上添花：在好上再加好。對比的是「雪中送炭」。',
     run:p=> p.rank>=2 ? { msg:'你中了舉，門前擠滿送禮的鄰居。', d:{renqing:3}, tag:'brocade' } : (p.rank===1 ? { msg:'秀才的面子不大，只有一兩人來。', d:{renqing:1} } : { msg:'你家門前冷冷清清，誰也沒來。' }) },
-  { title:'雪中送炭？', text:'有位同學（目前聲望最低的玩家）家中斷糧了。中舉之前，范進斷糧時沒有人理會。你要怎麼做？', note:'雪中送炭：在別人最需要時給予幫助。', choice:[
-      { label:'送一斗米過去（人情 −1、體面 +2；對方人情 +2）', run:(p,G,t)=>({ msg:'你雪中送炭，大家都記住了這份情。', d:{renqing:-1, timian:2}, target:t, td:{renqing:2}, tag:'snow' }) },
+  { title:'雪中送炭？', text:'有位考生（目前聲望最低的人）家中斷糧了。中舉之前，范進斷糧時沒有人理會。你要怎麼做？', note:'雪中送炭：在別人最需要時給予幫助。', choice:[
+      { virtue:true, label:'送一斗米過去（人情 −1、體面 +2；對方人情 +2）', run:(p,G,t)=>({ msg:'你雪中送炭，大家都記住了這份情。', d:{renqing:-1, timian:2}, target:t, td:{renqing:2}, tag:'snow' }) },
       { label:'等他中舉再說吧', run:(p)=>({ msg:'你決定等他發達了再去「錦上添花」。', tag:'brocade' }) } ] },
   { title:'一口啐在臉上', text:'你向丈人借盤纏，他「一口啐在臉上，罵了一個狗血噴頭」。', note:'「啐」是吐口水，表示輕視或憤怒。',
     run:p=> huAtt(p) < 80 ? { msg:'被罵得摸門不著。', d:{timian:-2}, tag:'scold' } : { msg:'可如今你是老爺，丈人連忙奉上銀子。', d:{renqing:2}, tag:'flatter' } },
   { title:'些須幾個錢', text:'胡屠戶再三不安道：「些須幾個錢，不夠你賞人。」', note:'前倨後恭：中舉前一文不借，中舉後主動送錢。',
     run:p=> p.rank>=2 ? { msg:'丈人主動送來賞錢。', d:{renqing:3}, tag:'flatter' } : { msg:'丈人連一文錢也不肯給，你反倒要請他喝酒。', d:{renqing:-1} } },
-  { title:'半盆豬油', text:'鄰居調侃：「少頃范老爺洗臉，還要洗下半盆豬油來。」全場哈哈大笑。', note:'這是誇飾，取笑胡屠戶滿手油膩。', run:p=>({ msg:'笑聲中大家都放鬆了：所有玩家人情 +1。', all:{renqing:1} }) },
+  { title:'半盆豬油', text:'鄰居調侃：「少頃范老爺洗臉，還要洗下半盆豬油來！」全場哈哈大笑。', note:'這是誇飾，取笑胡屠戶滿手油膩。', run:p=>({ msg:'笑聲中大家都放鬆了：所有玩家人情 +1。', all:{renqing:1} }) },
   { title:'張府周府的老爺', text:'胡屠戶拿城裡張府、周府的老爺跟你比相貌。', note:'同一個人，中舉前是「尖嘴猴腮」，中舉後是「體面的相貌」。',
-    run:p=> p.rank>=2 ? { msg:'「張府、周府這些老爺，也沒有我女婿這樣一個體面的相貌！」', d:{timian:2}, tag:'flatter' } : { msg:'「人家都是方面大耳，像你這尖嘴猴腮……」', d:{timian:-1}, tag:'scold' } },
+    run:p=> p.rank>=2 ? { msg:'「張府、周府這些老爺，也沒有我女婿這樣一個體面的相貌！」', d:{timian:2}, tag:'flatter' } : { msg:'「……城裡張府上那些老爺，都有萬貫家私，一個個方面大耳。像你這尖嘴猴腮，也該撒泡尿自己照照……」', d:{timian:-1}, tag:'scold' } },
   { title:'夾七夾八', text:'胡屠戶「一頓夾七夾八，罵得范進摸門不著」。', note:'夾七夾八：言語雜亂沒有條理；摸門不著：弄不清楚怎麼回事。', run:p=>({ msg:'挨了一頓罵，倒換來鄰居的同情。', d:{timian:-1, renqing:1}, tag:'scold' }) },
-  { title:'你奪我的雞怎的？', text:'鄰居來報喜，你卻以為被哄：「你曉得我今日沒有米，要賣這雞去救命，為什麼拿這話來混我？」', note:'長年失望，讓好消息也變得難以相信。', run:p=>({ msg:'你堅持把雞賣完才回家：後退 1 格。', move:-1 }) },
+  { title:'你奪我的雞怎的？', text:'鄰居來報喜，你卻以為被哄：「高鄰，你曉得我今日沒有米，要賣這隻雞去救命，為什麼拿這話來混我？」', note:'長年失望，讓好消息也變得難以相信。', run:p=>({ msg:'你堅持把雞賣完才回家：後退 1 格。', move:-1 }) },
   { title:'閻王的帳簿', text:'尖酸鄰居說：胡老爹殺豬「白刀子進去，紅刀子出來」，閻王簿上不差這一百棍。', note:'用胡屠戶的迷信開玩笑，增添喜劇效果。', run:p=>({ msg:'你講了個笑話，逗得大家開懷。', d:{renqing:2} }) },
   { title:'扯了幾十回', text:'回家路上，胡屠戶見女婿後襟滾皺了，「一路低著頭替他扯了幾十回」。', note:'動作細節最能寫出人物的巴結嘴臉。',
     run:p=> p.rank>=2 ? { msg:'丈人一路替你扯衣襟，你走得好不體面。', d:{timian:2}, tag:'flatter' } : { msg:'你看在眼裡，心裡五味雜陳。', d:{renqing:1} } },
   { title:'老爺回府了！', text:'到了家門，胡屠戶高聲叫道：「老爺回府了！」', note:'稱呼的改變，就是地位的改變。', run:(p,G)=>({ msg:'所有舉人體面 +1；你沾點喜氣，人情 +1。', allRank2:{timian:1}, d:{renqing:1} }) },
-  { title:'跟風送禮？', text:'鄰居們都趕去巴結目前聲望最高的玩家。你要跟著去嗎？', note:'想一想：送禮是出於情誼，還是看對方的身分？', choice:[
+  { title:'跟風送禮？', text:'鄰居們都趕去巴結目前聲望最高的人。你要跟著去嗎？', note:'想一想：送禮是出於情誼，還是看對方的身分？', choice:[
       { label:'跟著去送禮（人情 +2、體面 −1）', run:p=>({ msg:'禮送到了，可你心裡有點彆扭。', d:{renqing:2, timian:-1}, tag:'brocade' }) },
-      { label:'不隨波逐流（體面 +2）', run:p=>({ msg:'你守住了自己的分寸。', d:{timian:2} }) } ] }
+      { virtue:true, label:'不隨波逐流（體面 +2）', run:p=>({ msg:'你守住了自己的分寸。', d:{timian:2} }) } ] }
 ];
 
 
@@ -558,7 +710,7 @@ FATE_CARDS.push(
       : { msg:`米糧送到聲望最低的 ${last.name} 家（人情 +3）；你幫忙張羅，人情 +1。`, d:{ renqing:1 }, others:[{ p:last, d:{ renqing:3 } }] }; } },
   { title:'名落孫山也可再考', catchup:true, text:'宋代孫山考中最後一名，回鄉說：「解名盡處是孫山，賢郎更在孫山外。」落榜不丟臉，再考就有機會。', note:'「名落孫山」比喻考試落榜。范進應考二十餘次才中秀才，正是屢敗屢戰。',
     run:(p, G) => CATCHUP.isBehind(p, G) ? { msg:'你重整旗鼓：體面 +2，下一題可免費刪去一個錯誤選項。', d:{ timian:2 }, freeHint:1 } : { msg:'你把這句話送給落後的同學。人情 +1。', d:{ renqing:1 } } },
-  { title:'宗師憐才', catchup:true, text:'胡屠戶說：「還是宗師看見你老，不過意，捨與你的。」宗師也會憐惜苦讀多年的人。', note:'宗師是明清對科舉主考官的尊稱。原著寫周學道起初同情范進年老衣破，把他的文章反覆看了三遍，才讚為「天地間之至文」。',
+  { title:'宗師憐才', catchup:true, text:'胡屠戶說：「還是宗師看見你老，不過意，捨與你的。」宗師也會憐惜苦讀多年的人。', note:'明清時考中秀才者，稱主考官為宗師，以表示尊敬。（課外延伸）原著第三回前段寫周學道起初同情范進年老衣破，把他的文章反覆看了三遍，才讚為「天地間之至文」。',
     run:(p, G) => (lastPlace(G) === p && p.rank === 0) ? { msg:'宗師破格錄取：你中了秀才！', rank:1, d:{ timian:1 } }
       : CATCHUP.isBehind(p, G) ? { msg:'宗師對你另眼相看：體面 +2。', d:{ timian:2 } } : { msg:'宗師勉勵你幾句：體面 +1。', d:{ timian:1 } } },
   { title:'大器晚成', catchup:true, text:'范進五十四歲才中秀才，同年又中了舉人。起步晚，不代表走不到。', note:'科舉不限年齡，大器晚成的人並不少見。',
@@ -574,11 +726,11 @@ WORLD_CARDS.push(
   { title:'樹大招風', catchup:true, text:'鄰居在背後議論聲望最高的人：「別看他現在風光，從前還不是被丈人罵『現世寶』？」', note:'世態炎涼：人情隨地位冷熱變化，捧得越高，閒話也越多。',
     run:(p, G) => { const lead = firstPlace(G), last = lastPlace(G); if (lead === last) return { msg:'目前沒人特別出風頭。人情 +1。', d:{ renqing:1 } };
       return { msg:`${lead.name} 體面 −2；${last.name} 得到同情，人情 +2。`, others:[{ p:lead, d:{ timian:-2 } }, { p:last, d:{ renqing:2 } }] }; } },
-  { title:'同案相助', catchup:true, text:'魏好古約了同案的朋友一起溫書，特別邀請落後的同學。', note:'同案：同一年考中秀才的人。文會取「以文會友」之意。',
+  { title:'同案相助', catchup:true, text:'魏好古約了同案的朋友一起溫書，特別邀請落後的同學。', note:'同案：同一年考中秀才的人。文會：文士切磋學問的聚會。',
     run:(p, G) => { const last = lastPlace(G); return last === p ? { msg:'同案們一起幫你溫書：體面 +2、人情 +1。', d:{ timian:2, renqing:1 } }
       : { msg:`你和 ${last.name} 一起溫書：兩人體面各 +1。`, d:{ timian:1 }, others:[{ p:last, d:{ timian:1 } }] }; } },
-  { title:'借盤纏給同案', catchup:true, text:'聲望最低的同學沒有盤費去鄉試，來找你商量。你要像胡屠戶那樣「一口啐在臉上」嗎？', note:'胡屠戶拒借盤纏時說「叫我一家老小嗑西北風」，與他後來的奉承形成強烈對比。', choice:[
-      { label:'借他盤纏（你人情 −1、體面 +1；對方體面 +2、人情 +1）', run:(p, G, t) => ({ msg:'你雪中送炭，他感激不盡。', d:{ renqing:-1, timian:1 }, target:t, td:{ timian:2, renqing:1 }, tag:'snow' }) },
+  { title:'借盤纏給同案', catchup:true, text:'聲望最低的考生沒有盤費去鄉試，來找你商量。你要像胡屠戶那樣「一口啐在臉上」嗎？', note:'胡屠戶拒借盤纏時說「叫我一家老小嗑西北風」，與他後來的奉承形成強烈對比。', choice:[
+      { virtue:true, label:'借他盤纏（你人情 −1、體面 +1；對方體面 +2、人情 +1）', run:(p, G, t) => ({ msg:'你雪中送炭，他感激不盡。', d:{ renqing:-1, timian:1 }, target:t, td:{ timian:2, renqing:1 }, tag:'snow' }) },
       { label:'學胡屠戶罵他一頓', run:p => ({ msg:'旁人都搖頭：你成了另一個胡屠戶。體面 −1。', d:{ timian:-1 } }) } ] }
 );
 
@@ -672,6 +824,7 @@ const SND = {
     }
     if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
     if (!this.unlocked){ this.unlocked = true; this.syncBgm(); }
+    else if (this.cfg.bgmOn && !this.bgmMissing && this.el().paused && !document.hidden) this.syncBgm(); // 被系統暫停（來電、鎖屏）後，點一下就續播
   },
   syncBgm(){
     const a = this.el(); a.volume = this.cfg.bgmVol;
@@ -680,6 +833,9 @@ const SND = {
       a.play().catch(() => {});
     } else a.pause();
   },
+  // 切到背景／鎖螢幕時暫停；回到前景時，若音樂原本開著就續播（iOS 若不允許，下次點畫面時再播）
+  suspend(){ this.el().pause(); if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {}); },
+  resume(){ if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); if (this.unlocked) this.syncBgm(); },
   setSfxVol(v){ this.cfg.sfxVol = v; if (this.master) this.master.gain.value = v; this.save(); },
   setBgmVol(v){ this.cfg.bgmVol = v; this.el().volume = v; this.save(); },
   // 產生撥弦音的音訊緩衝（快取）
@@ -761,6 +917,11 @@ const isCorner = i => i % 6 === 0;
 const SLOT = [[-0.22,-0.2],[0.22,-0.2],[-0.22,0.24],[0.22,0.24]];
 const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
 function shortName(t){ return t.name; }
+// 2D 棋盤是否放大：玩家手動設定優先；否則棋盤區短邊 < 460px（手機）時自動放大
+function boardZoomWanted(w, h){
+  const pref = STORE.get('zoom', null);
+  return pref === null ? Math.min(w, h) < 460 : !!pref;
+}
 
 /* =====================================================================
    四、2D 畫面（DOM／CSS）：省電、相容性最好
@@ -810,9 +971,27 @@ const R2D = {
   },
   resize(){
     if (!this.host) return;
-    const w = this.host.clientWidth, h = this.host.clientHeight; const s = Math.max(200, Math.min(w, h) - 16);
+    const w = this.host.clientWidth, h = this.host.clientHeight; const fit = Math.max(200, Math.min(w, h) - 16);
+    // 手機（棋盤區較小）預設放大 1.6 倍，可捲動，並自動捲到目前棋子；🔍 可切換
+    const zoom = boardZoomWanted(w, h); this.zoom = zoom;
+    this.host.classList.toggle('zoomed', zoom);
+    const s = zoom ? Math.round(Math.max(fit * 1.6, 560)) : fit;
     this.board.style.width = s + 'px'; this.board.style.height = s + 'px'; this.board.style.setProperty('--u', (s/7) + 'px');
     this.u = s / 7; this.applyFaceZ(); this.placeAll(false);
+    if (zoom && this.G) this.follow(this.G.cur, false);
+  },
+  // 放大模式：把指定玩家的棋子捲到畫面中央
+  follow(pi, smooth = true){
+    if (!this.zoom || !this.host || !this.toks[pi]) return;
+    const t = this.toks[pi], h = this.host;
+    const x = this.board.offsetLeft + t.offsetLeft - h.clientWidth / 2, y = this.board.offsetTop + t.offsetTop - h.clientHeight / 2;
+    h.scrollTo({ left:Math.max(0, x), top:Math.max(0, y), behavior: smooth && !FAST ? 'smooth' : 'auto' });
+  },
+  // 放大模式：擲骰時先捲到棋盤中央（骰子在中間）
+  centerView(){
+    if (!this.zoom || !this.host) return;
+    const h = this.host;
+    h.scrollTo({ left:(h.scrollWidth - h.clientWidth) / 2, top:(h.scrollHeight - h.clientHeight) / 2, behavior: FAST ? 'auto' : 'smooth' });
   },
   tileXY(i, pi){
     const el = this.tileEls[i]; const sl = SLOT[pi];
@@ -827,15 +1006,18 @@ const R2D = {
   sync(G){
     this.G = G; this.placeAll(false);
     this.toks.forEach((t, i) => t.classList.toggle('cur', i === G.cur));
+    this.follow(G.cur);
   },
   async moveStep(pi, pos){
     const t = this.toks[pi]; const xy = this.tileXY(pos, pi);
     t.classList.remove('hop'); void t.offsetWidth; t.classList.add('hop');
     t.style.left = xy.x + 'px'; t.style.top = xy.y + 'px';
+    this.follow(pi);
     await sleep(250);
   },
   async rollDice(v){
     const show = { 1:[0,0], 6:[0,180], 2:[0,-90], 5:[0,90], 3:[-90,0], 4:[90,0] }[v];
+    if (this.zoom){ this.centerView(); await sleep(300); }
     this.spin += 2; const bx = this.spin*360 + show[0], by = this.spin*360 + 180 + show[1] + 180; // 多轉幾圈再停
     this.cube.style.transitionDuration = (1.0*SPEED) + 's';
     this.cube.style.transform = `rotateX(${bx}deg) rotateY(${by}deg)`;
@@ -1109,10 +1291,11 @@ let switching = false;
 
 function newState(cfg){
   return {
-    v:1, cfg, cur:0, round:1, over:false, timeUp:false, extra:false,
+    v:2, cfg, cur:0, round:1, over:false, timeUp:false, extra:false, maxRounds: cfg.rounds || 0,
     timeLimit: cfg.minutes * 60, remain: cfg.minutes * 60, qTime: cfg.qTime, view: cfg.mode === '2d' ? '2d' : '3d',
     players: cfg.players.map((pl, i) => ({
       name: pl.name, tok: pl.tok, color: PCOLORS[i].c, pos:0, timian:5, renqing:3, rank:0, skip:0, freeHint:0, moodKey:'scorn',
+      isAI: !!pl.isAI, persona: pl.persona == null ? -1 : pl.persona, turns:0,
       stats:{ right:0, wrong:0, scold:0, flatter:0, snow:0, brocade:0 }
     })),
     qdeck:null, fateDeck:null, worldDeck:null, log:[]
@@ -1121,6 +1304,35 @@ function newState(cfg){
 const save = () => { if (G && !G.over) STORE.set('save', G); };
 const curP = () => G.players[G.cur];
 const score = scoreOf;
+
+/* ---------- 電腦對手的小工具 ---------- */
+const isAI = p => !!(p && p.isAI);
+const humanP = () => G.players.find(p => !p.isAI) || G.players[0];
+const aiAcc = () => (DIFFICULTY[G.cfg.diff] || DIFFICULTY.normal).acc;
+const aiLine = p => { const ps = AI_PERSONAS[p.persona]; return ps ? ps.think[rand(ps.think.length)] : '……'; };
+const aiDelay = (a, b) => sleep(a + Math.random() * (b - a)); // 「思考中」的停頓（?fast=1 時自動加速）
+// 電腦回合的結果框：倒數後自動按「繼續」，學生也可以直接點
+function autoClick(btn, sec){
+  if (!btn) return;
+  const base = btn.textContent; let left = Math.max(1, Math.round(sec * SPEED));
+  btn.textContent = `${base}（${left}）`;
+  const t = setInterval(() => {
+    if (!btn.isConnected){ clearInterval(t); return; }
+    if ($('#sheetLayer').style.display === 'flex' || document.hidden) return; // 開啟規則／設定或切到背景時暫停
+    left--; btn.textContent = `${base}（${left}）`;
+    if (left <= 0){ clearInterval(t); btn.click(); }
+  }, 1000);
+}
+// 抉擇卡：依人物個性選擇
+function aiPickChoice(card, p, target){
+  const opts = card.choice, style = (AI_PERSONAS[p.persona] || {}).style;
+  const gain = ch => { const e = ch.run(p, G, target) || {}, d = e.d || {}; return (d.timian || 0) + (d.renqing || 0); };
+  const vi = opts.findIndex(c => c.virtue);
+  if (style === 'kind' && vi >= 0 && Math.random() < 0.85) return vi;            // 魏好古：重情義
+  if (style === 'follow' && vi >= 0 && Math.random() < 0.65) return vi === 0 ? 1 : 0; // 高鄰：愛錦上添花
+  let best = 0; opts.forEach((c, i) => { if (gain(c) > gain(opts[best])) best = i; }); // 郎中：算計得失
+  return best;
+}
 
 function log(html){
   G.log.unshift(html); if (G.log.length > 60) G.log.length = 60;
@@ -1192,25 +1404,42 @@ async function startTurn(){
   const p = curP();
   if (p.skip > 0){
     p.skip--; busy = true; setRoll(false);
-    await openModal({ title:`${p.name} 休息一回合`, badge:'瘋', html:'<p class="kai text-lg">還在昏昏沉沉，「如在夢裡一般」……這回合先歇著。</p>', buttons:[{ label:'下一位 ▶', value:1 }] });
+    const pr = openModal({ title:`${p.name} 休息一回合`, badge:'瘋', html:'<p class="kai text-lg">還在昏昏沉沉，「如在夢裡一般」……這回合先歇著。</p>', buttons:[{ label:'下一位 ▶', value:1 }] });
+    if (isAI(p)) autoClick($('#mBtns button'), 2);
+    await pr;
     busy = false; return endTurn();
   }
-  setRoll(true); SND.play('turn');
-  setMsg(`輪到 ${p.name}，請擲骰子。`);
-  if (G.timeUp) return endGame();
+  if (G.timeUp) return endGame('time');
+  SND.play('turn');
+  if (isAI(p)){
+    // 電腦回合：短暫「思考」後自動擲骰
+    setRoll(false, `🤖 ${p.name} 的回合…`);
+    setMsg(`${p.name}：「${aiLine(p)}」`);
+    const g0 = G; await sleep(900);
+    while (G === g0 && !G.over && (switching || !R || busy || document.hidden || $('#sheetLayer').style.display === 'flex')) await sleep(300);
+    if (G === g0 && !G.over && curP() === p) onRoll(true);
+    return;
+  }
+  setRoll(true);
+  setMsg(`輪到你了，${p.name}，請擲骰子。`);
 }
 function endTurn(){
   if (!G || G.over) return;
-  if (G.timeUp) return endGame();
+  if (G.timeUp) return endGame('time');
   if (G.extra){ G.extra = false; save(); toast(`${curP().name} 再擲一次！`); return startTurn(); }
-  G.cur = (G.cur + 1) % G.players.length; if (G.cur === 0) G.round++;
+  G.cur = (G.cur + 1) % G.players.length;
+  if (G.cur === 0){
+    G.round++;
+    if (G.maxRounds && G.round > G.maxRounds){ G.round = G.maxRounds; return endGame('rounds'); } // 回合數到了就放榜
+  }
   save(); startTurn();
 }
-async function onRoll(){
+async function onRoll(fromAI){
   if (busy || switching || !G || G.over || !R) return;
-  busy = true; setRoll(false);
+  if (fromAI !== true && isAI(curP())) return; // 電腦回合不能代擲
+  busy = true; setRoll(false, isAI(curP()) ? `🤖 ${curP().name} 的回合…` : null);
   try {
-    const p = curP(), v = 1 + rand(6);
+    const p = curP(), v = 1 + rand(6); p.turns = (p.turns || 0) + 1;
     SND.play('dice'); await R.rollDice(v);
     log(`${pTag(p)} 擲出 <b>${v}</b> 點`); setMsg(`${p.name} 擲出 ${v} 點`);
     await movePlayer(G.cur, v);
@@ -1298,7 +1527,8 @@ function askQuestion({ p, tile, title, sub, effectFn }){
       <div class="kai text-[1.32rem] leading-relaxed mb-3" style="user-select:text">${esc(q.q)}</div>
       ${G.qTime ? `<div class="qtimer mb-3"><div id="qbar" style="width:100%"></div></div>` : ''}
       <div class="grid gap-2" id="qOpts">${order.map((oi, k) => `<button class="opt-btn" data-oi="${oi}" data-testid="opt"><span class="ok">${q.o.length===2 ? '' : LETTERS[k]}</span><span class="kai flex-1">${esc(q.o[oi])}</span></button>`).join('')}</div>
-      <div class="flex items-center gap-2 mt-3" id="qTools">
+      ${isAI(p) ? `<div class="mt-3 kai text-lg flex items-center gap-2" id="qAI"><span class="think-dots">🤖</span> ${esc(p.name)}：「${esc(aiLine(p))}」<span class="text-sm opacity-60">（電腦作答中）</span></div>` : ''}
+      <div class="flex items-center gap-2 mt-3" id="qTools" ${isAI(p) ? 'style="display:none"' : ''}>
         <button class="btn-ink text-sm" id="qHint">${p.freeHint ? '🙏 文昌庇佑（免費）刪去一個錯誤選項' : '🤝 請教同案（人情 −1）刪去一個錯誤選項'}</button>
         ${G.qTime ? `<span class="ml-auto kai text-sm opacity-70">剩 <span id="qLeft">${left}</span> 秒</span>` : ''}
       </div>
@@ -1332,11 +1562,20 @@ function askQuestion({ p, tile, title, sub, effectFn }){
         <div class="mt-2 flex flex-wrap gap-1">${chips}</div>
         <div class="flex justify-end mt-3"><button class="btn-seal text-lg" id="qNext" data-testid="btn-continue">繼續 ▶</button></div>`;
       show(resEl); if (eff && eff.msg) setMsg(eff.msg);
+      const ai = $('#qAI', box); if (ai) hide(ai);
       $('#qNext', box).onclick = () => { hide('#modalLayer'); res(ok); };
+      if (isAI(p)) autoClick($('#qNext', box), 4);
       setTimeout(() => resEl.scrollIntoView({ behavior:'smooth', block:'end' }), 60);
     };
     btns.forEach(b => b.onclick = () => finish(+b.dataset.oi));
-    if (G.qTime){
+    if (isAI(p)){
+      // 電腦作答：選項鎖住，停頓 1.2–2.2 秒後依難度的命中率作答
+      btns.forEach(b => b.disabled = true);
+      aiDelay(1200, 2200).then(() => {
+        const wrong = q.o.map((_, i) => i).filter(i => i !== q.a);
+        finish(Math.random() < aiAcc() ? q.a : wrong[rand(wrong.length)]);
+      });
+    } else if (G.qTime){
       timer = setInterval(() => {
         if ($('#sheetLayer').style.display === 'flex') return; // 開啟說明時暫停
         left--; const l = $('#qLeft', box), bar = $('#qbar', box);
@@ -1373,8 +1612,20 @@ function showCard(kind, p){
       setMsg(`${card.title}：${eff.msg || ''}`); log(`${pTag(p)} 抽到${st.name}「${esc(card.title)}」`);
       const b = document.createElement('button'); b.className = 'btn-seal text-lg'; b.textContent = '繼續 ▶'; b.dataset.testid = 'btn-continue';
       b.onclick = () => { hide('#modalLayer'); res(eff); }; btnBox.appendChild(b);
+      if (isAI(p)) autoClick(b, 3);
     };
-    if (card.choice){
+    if (isAI(p)){
+      // 電腦抽卡：停頓一下再翻牌／做選擇
+      btnBox.innerHTML = `<div class="kai text-lg">🤖 ${esc(p.name)}：「${esc(aiLine(p))}」</div>`;
+      aiDelay(1000, 1600).then(() => {
+        if (card.choice){
+          const k = aiPickChoice(card, p, target);
+          $('#cRes', box).innerHTML = `<div class="kai text-base opacity-80">${esc(p.name)} 選擇：${esc(card.choice[k].label)}</div>`;
+          const eff = card.choice[k].run(p, G, target);
+          setTimeout(() => { const r0 = $('#cRes', box).innerHTML; finish(eff); $('#cRes', box).insertAdjacentHTML('afterbegin', r0); }, 500 * SPEED);
+        } else finish(card.run(p, G));
+      });
+    } else if (card.choice){
       card.choice.forEach(ch => { const b = document.createElement('button'); b.className = 'btn-ink text-base kai'; b.textContent = ch.label; b.dataset.testid = 'choice';
         b.onclick = () => finish(ch.run(p, G, target)); btnBox.appendChild(b); });
     } else {
@@ -1386,16 +1637,39 @@ function showCard(kind, p){
 }
 
 /* ---------- 結算 ---------- */
-function endGame(){
+function endGame(reason = 'manual'){
   if (!G || G.over) return;
-  G.over = true; STORE.del('save'); setRoll(false); hide('#modalLayer'); hide('#toast');
-  const ranked = G.players.slice().sort((a, b) => score(b) - score(a) || b.stats.right - a.stats.right);
+  G.over = true; G.endedBy = reason; STORE.del('save'); setRoll(false); hide('#modalLayer'); hide('#toast');
+  $$('.floater').forEach(f => f.remove());
+  // 同分時比答對題數；再同分時「你」優先（電腦讓賢）
+  const ranked = G.players.slice().sort((a, b) => score(b) - score(a) || b.stats.right - a.stats.right || (a.isAI - b.isAI));
   const titles = ['解元','亞元','第三名','第四名'];
+  const me = humanP(), place = ranked.indexOf(me) + 1, win = place === 1;
+  const diffOK = CERT_RULE.diffs.includes(G.cfg.diff), longEnough = (me.turns || 0) >= CERT_RULE.minTurns;
+  const cert = win && diffOK && longEnough;
+  G.result = { win, place, cert };
+  $('#endTitle').textContent = win ? '金榜題名' : '名落孫山';
+  $('#endTitle').style.color = win ? 'var(--zhu)' : '';
+  const gap = score(ranked[0]) - score(me);
+  $('#endSub').textContent = win ? `恭喜 ${me.name} 高中解元！力壓 ${G.players.length - 1} 位電腦對手（${DIFFICULTY[G.cfg.diff].name}）。`
+    : `這次由 ${ranked[0].name} 奪得榜首，你名列第 ${place} 名${gap > 0 ? `，只差 ${gap} 分` : '（同分，比答對題數落後）'}。`;
+  const note = $('#endNote'); hide('#certBox'); hide(note);
+  if (cert){
+    show('#certBox', 'block'); $('#certImg').removeAttribute('src');
+    drawCertificate(me).then(url => { $('#certImg').src = url; });
+  } else {
+    note.innerHTML = win
+      ? (!diffOK ? `🎉 你在「簡單」難度拿下榜首！<br>挑戰<b>「普通」或「困難」</b>難度再拿第一，就能領取由 ${esc(CERTIFIER)} 認證的證書。`
+                 : `🎉 你拿下榜首！不過這局太短（你只擲了 ${me.turns || 0} 次骰子，至少要 ${CERT_RULE.minTurns} 次）。<br>完整下完一局再奪魁，就能領取證書。`)
+      : `📖 ${esc(ENCOURAGE[rand(ENCOURAGE.length)])}<br><span class="text-base opacity-75">贏得第一名（普通以上難度）即可領取證書。</span>`;
+    show(note, 'block');
+  }
+  $('#btnAgain').textContent = win ? '再考一科（同設定）' : '不服氣，再考一科！';
   $('#rankList').innerHTML = ranked.map((p, i) => `
     <div class="pcard flex items-center gap-3 ${i===0?'cur':''}" style="animation:fadein .5s ${i*0.15}s both">
       <span class="seal w-12 h-12 text-base flex-none" style="background:${i===0?'var(--zhu)':'#6b5a48'}">${titles[i]}</span>
       <span class="ptok" style="background:${p.color}">${esc(p.tok)}</span>
-      <div class="flex-1 min-w-0"><div class="kai text-xl truncate">${esc(p.name)} <span class="text-sm opacity-70">${RANKS[p.rank].name}</span></div>
+      <div class="flex-1 min-w-0"><div class="kai text-xl truncate">${esc(p.name)} <span class="text-sm opacity-70">${p.isAI ? '🤖 電腦' : '👤 你'}・${RANKS[p.rank].name}</span></div>
         <div class="text-sm opacity-80">體面 ${p.timian}｜人情 ${p.renqing}｜功名 +${RANKS[p.rank].bonus}｜答對 ${p.stats.right}／${p.stats.right+p.stats.wrong}</div>
         <div class="text-xs opacity-60 kai">胡屠戶最後叫你：「${huMood(p).call}」</div></div>
       <div class="kai text-3xl text-zhu">${score(p)}</div>
@@ -1409,13 +1683,143 @@ function endGame(){
   ].filter(a => a[1].length);
   $('#awardList').innerHTML = awards.map(a => `<span class="chip neu kai text-base py-1">${a[0]}：${a[1].map(p => esc(p.name)).join('、')}</span>`).join('');
   $('#reflectList').innerHTML = shuffle(REFLECTIONS).slice(0, 3).map(r => `<li>${esc(r)}</li>`).join('');
-  unmountRenderer(); showScreen('scrEnd'); SND.play('end');
+  unmountRenderer(); showScreen('scrEnd'); SND.play(win ? 'end' : 'down');
+}
+
+/* =====================================================================
+   證書：用原生 canvas 畫一張宣紙風格的獎狀（可下載 PNG、可列印）
+   ===================================================================== */
+async function drawCertificate(me, redraw = false){
+  const W = 2000, H = 1414; // A4 橫式比例
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const KAI = '"LXGW WenKai TC","Noto Serif TC","Kaiti TC","DFKai-SB",serif';
+  const cls = (G.cfg.cls || '').trim(), seat = (G.cfg.seat || '').trim();
+  const who = `${cls ? cls + ' 班 ' : ''}${seat ? seat + ' 號 ' : ''}`;
+  const now = new Date();
+  const dateTxt = `中華民國 ${now.getFullYear() - 1911} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`;
+  const rivals = G.players.filter(p => p.isAI).map(p => p.name).join('、');
+  const lines = [
+    `茲證明　${who}${me.name}　同學`,
+    `於〈范進中舉〉學習遊戲「范進命運棋」中，`,
+    `以聲望 ${score(me)} 分力壓 ${rivals}，`,
+    `榮登榜首，學識過人，堪稱解元。`,
+    `特頒此狀，以資鼓勵。`
+  ];
+  // 先把會用到的字載入（網路字型按字切片下載），避免畫成預設字型
+  const all = lines.join('') + dateTxt + CERTIFIER + '〈〉學習遊戲獎狀范進命運棋金榜題名解元難度簡單普通困難聲望分功名童生秀才舉人答對題認證者：｜／0123456789';
+  const fontJobs = () => Promise.all(['700 80px', '400 40px'].map(w => document.fonts.load(`${w} "LXGW WenKai TC"`, all)));
+  let fontsOK = false;
+  try { await Promise.race([fontJobs().then(() => { fontsOK = true; }), new Promise(r => setTimeout(r, 6000))]); } catch(e){}
+  if (!fontsOK && !redraw){ // 字型還沒到：先用備用字型畫，字型到了再自動重畫一次
+    fontJobs().then(() => drawCertificate(me, true)).then(url => { const im = $('#certImg'); if (im && G && G.over) im.src = url; }).catch(() => {});
+  }
+  // 宣紙底色＋纖維紋理
+  const g = c.createRadialGradient(W/2, H/2, 200, W/2, H/2, 1250);
+  g.addColorStop(0, '#f8f0dc'); g.addColorStop(1, '#e6d4ad'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 2600; i++){ c.fillStyle = `rgba(120,90,50,${rnd()*0.07})`; c.fillRect(rnd()*W, rnd()*H, 1 + rnd()*3, 1 + rnd()*1.5); }
+  c.strokeStyle = 'rgba(140,110,70,.08)'; c.lineWidth = 1;
+  for (let i = 0; i < 160; i++){ const x = rnd()*W, y = rnd()*H; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 30, y + (rnd()-.5)*20, x + 40 + rnd()*80, y + (rnd()-.5)*30); c.stroke(); }
+  // 遠山水墨（淡）
+  const mount = (base, amp, alpha, seedOff) => {
+    c.fillStyle = `rgba(40,45,50,${alpha})`; c.beginPath(); c.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20){ const y = base - amp * (Math.sin((x + seedOff) / 170) * .6 + Math.sin((x + seedOff) / 63) * .25 + Math.sin((x + seedOff) / 23) * .08); c.lineTo(x, y); }
+    c.lineTo(W, H); c.closePath(); c.fill();
+  };
+  mount(H - 150, 90, .05, 0); mount(H - 110, 60, .06, 400);
+  // 雙框：外朱紅、內金
+  c.strokeStyle = '#9e2b1f'; c.lineWidth = 22; c.strokeRect(50, 50, W - 100, H - 100);
+  c.strokeStyle = '#b8893b'; c.lineWidth = 5; c.strokeRect(86, 86, W - 172, H - 172);
+  c.strokeStyle = '#9e2b1f'; c.lineWidth = 2; c.strokeRect(100, 100, W - 200, H - 200);
+  // 四角回紋
+  const corner = (x, y, sx, sy) => {
+    c.save(); c.translate(x, y); c.scale(sx, sy); c.strokeStyle = '#9e2b1f'; c.lineWidth = 6; c.beginPath();
+    c.moveTo(0, 90); c.lineTo(0, 0); c.lineTo(90, 0); c.moveTo(20, 70); c.lineTo(20, 20); c.lineTo(70, 20); c.lineTo(70, 50); c.lineTo(42, 50); c.lineTo(42, 42); c.stroke(); c.restore();
+  };
+  corner(120, 120, 1, 1); corner(W - 120, 120, -1, 1); corner(120, H - 120, 1, -1); corner(W - 120, H - 120, -1, -1);
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  // 標題
+  c.fillStyle = '#5a4630'; c.font = `400 40px ${KAI}`; c.fillText('〈范進中舉〉學習遊戲', W/2, 230);
+  c.fillStyle = '#9e2b1f'; c.font = `700 150px ${KAI}`; c.fillText('獎　　狀', W/2, 400);
+  c.fillStyle = '#1f1a17'; c.font = `700 64px ${KAI}`; c.fillText('范進命運棋　金榜題名', W/2, 500);
+  c.strokeStyle = '#b8893b'; c.lineWidth = 3; c.beginPath(); c.moveTo(W/2 - 420, 535); c.lineTo(W/2 + 420, 535); c.stroke();
+  // 內文
+  c.textAlign = 'left'; c.fillStyle = '#1f1a17';
+  const x0 = 300; let y = 640;
+  lines.forEach((t, i) => {
+    let size = i === 0 ? 62 : 54; c.font = `${i === 0 ? 700 : 400} ${size}px ${KAI}`;
+    while (c.measureText(t).width > W - 2 * x0 && size > 30){ size -= 2; c.font = `${i === 0 ? 700 : 400} ${size}px ${KAI}`; }
+    c.fillText(t, x0 + (i === 0 ? 0 : 60), y); y += i === 0 ? 92 : 82;
+  });
+  // 成績細目
+  const total = me.stats.right + me.stats.wrong;
+  c.font = `400 38px ${KAI}`; c.fillStyle = '#5a4630';
+  c.fillText(`難度：${DIFFICULTY[G.cfg.diff].name}｜聲望：${score(me)} 分｜功名：${RANKS[me.rank].name}｜答對：${me.stats.right}／${total} 題`, x0 + 60, y + 20);
+  // 日期與認證者
+  c.fillStyle = '#1f1a17'; c.textAlign = 'right';
+  c.font = `700 52px ${KAI}`; c.fillText(`認證者：${CERTIFIER}`, W - 380, H - 250);
+  c.font = `400 42px ${KAI}`; c.fillText(dateTxt, W - 380, H - 175);
+  // 朱印（金榜題名）
+  c.save(); c.translate(W - 250, H - 250); c.rotate(-0.06);
+  c.fillStyle = 'rgba(178,40,28,.88)'; c.fillRect(-90, -90, 180, 180);
+  c.strokeStyle = 'rgba(248,240,220,.9)'; c.lineWidth = 6; c.strokeRect(-78, -78, 156, 156);
+  c.fillStyle = '#f8f0dc'; c.font = `700 62px ${KAI}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  [['金', 34, -34], ['榜', 34, 34], ['題', -34, -34], ['名', -34, 34]].forEach(([ch, x, yy]) => c.fillText(ch, x, yy)); // 印文由右而左直書
+  c.restore();
+  // 左上小印
+  c.save(); c.translate(230, 300); c.rotate(0.05); c.strokeStyle = 'rgba(178,40,28,.85)'; c.lineWidth = 6; c.strokeRect(-42, -70, 84, 140);
+  c.fillStyle = 'rgba(178,40,28,.85)'; c.font = `700 50px ${KAI}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('解', 0, -32); c.fillText('元', 0, 32); c.restore();
+  const url = cv.toDataURL('image/png');
+  G.certURL = url;
+  // 預先做好 Blob：手機分享／下載需要在點擊當下同步取得檔案
+  cv.toBlob(b => { if (G) G.certBlob = b; }, 'image/png');
+  return url;
+}
+function downloadCert(){
+  if (!G || !G.certURL) return toast('證書還在繪製中，請稍候');
+  const me = humanP(), name = `范進命運棋證書_${me.name}.png`;
+  // 手機：支援 Web Share（iOS 15+／Android Chrome）就叫出分享選單，可直接「儲存影像」
+  if (IS_TOUCH && G.certBlob && navigator.canShare){
+    try {
+      const file = new File([G.certBlob], name, { type:'image/png' });
+      if (navigator.canShare({ files:[file] })){
+        navigator.share({ files:[file], title:'范進命運棋證書' }).catch(e => { if (e && e.name !== 'AbortError') plainDownload(name); });
+        return;
+      }
+    } catch(e){}
+  }
+  plainDownload(name);
+  if (IS_IOS) toast('若沒有出現下載，請長按證書圖片 →「加入照片」', 4500);
+}
+function plainDownload(name){
+  const a = document.createElement('a');
+  a.href = G.certBlob ? URL.createObjectURL(G.certBlob) : G.certURL; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  if (G.certBlob) setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+// 手機：在新分頁開啟證書圖片（長按即可儲存）
+function openCert(){
+  if (!G || !G.certURL) return toast('證書還在繪製中，請稍候');
+  const url = G.certBlob ? URL.createObjectURL(G.certBlob) : G.certURL;
+  const w = window.open(url, '_blank');
+  if (!w) toast('瀏覽器擋住了新分頁，請直接長按證書圖片儲存', 4000);
+}
+function printCert(){
+  if (!G || !G.certURL) return toast('證書還在繪製中，請稍候');
+  window.print();
 }
 
 /* =====================================================================
    七、畫面（renderer）掛載與 3D／2D 切換
    ===================================================================== */
+/* ---------- 手機偵測：自動模式在手機上預設用 2D（省電、省流量），除非裝置明顯夠力 ---------- */
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints > 0;
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function isPhone(){ return IS_TOUCH && Math.min(screen.width, screen.height) <= 520; }
+function phoneCapable(){ return (navigator.deviceMemory || 0) >= 8 && (navigator.hardwareConcurrency || 0) >= 8; }
 async function mountRenderer(want, { auto=false, silent=false } = {}){
+  if (want === '3d' && auto && isPhone() && !phoneCapable()){ want = '2d'; console.info('[范進命運棋] 手機：自動模式改用 2D'); }
   switching = true; unmountRenderer();
   const host = $('#boardHost');
   const opts = { onTileClick: tileInfo, strict: auto, onLost: () => { toast('3D 畫面中斷，已改用 2D'); mountRenderer('2d'); } };
@@ -1438,6 +1842,7 @@ async function mountRenderer(want, { auto=false, silent=false } = {}){
   }
   if (want === '2d'){ const r = Object.create(R2D); await r.init(host, G, opts); R = r; G.view = '2d'; }
   R.sync(G); updateUI(); save(); switching = false;
+  $('#btnZoom').style.display = R.name === '2d' ? 'block' : 'none';
 }
 function unmountRenderer(){ if (R){ try { R.destroy(); } catch(e){} R = null; } }
 async function toggleMode(){
@@ -1453,12 +1858,16 @@ function tileInfo(i){
   const t = TILES[i], st = TYPE_STYLE[t.type];
   toast(`【${i}・${t.name}】${st.name}｜${t.story}`, 4200);
 }
-function setMsg(t){ if (R && R.setMessage) R.setMessage(t); }
+function setMsg(t){ if (R && R.setMessage) R.setMessage(t); const h = $('#hintLine'); if (h && t) h.textContent = t; }
 
 /* =====================================================================
    八、介面更新
    ===================================================================== */
-function setRoll(on){ const b = $('#btnRoll'); if (b) b.disabled = !on; }
+function setRoll(on, label){
+  const b = $('#btnRoll'); if (!b) return;
+  b.disabled = !on;
+  if (label) b.textContent = label; else if (on) b.textContent = '🎲 擲骰子';
+}
 function huFaceSVG(att){
   const t = att / 100;
   const inner = 41 - t*9, outer = 35 + t*1, mouthC = 70 + (t - 0.45) * 26, blush = t > 0.75 ? 0.5 : 0;
@@ -1491,11 +1900,14 @@ function updateUI(){
   $('#playerList').innerHTML = G.players.map((pl, i) => `
     <div class="pcard ${i===G.cur?'cur':''}" id="pcard${i}">
       <div class="flex items-center gap-2"><span class="ptok" style="background:${pl.color}">${esc(pl.tok)}</span>
-        <div class="flex-1 min-w-0"><div class="kai text-base truncate">${esc(pl.name)}</div><div class="text-[11px] opacity-65 truncate">屠戶叫他「${huMood(pl).call}」${pl.skip?'・休息中':''}</div>${CATCHUP.isBehind(pl, G) ? '<div class="text-[11px] text-zhu kai">🔥 追分中：答對體面 +1、可補考</div>' : CATCHUP.isLeader(pl, G) ? '<div class="text-[11px] kai" style="color:var(--jin)">👑 領先：奉承加成上限 +1</div>' : ''}</div>
+        <div class="flex-1 min-w-0"><div class="kai text-base truncate">${esc(pl.name)} <span class="text-[11px] opacity-70">${pl.isAI ? `🤖 ${esc((AI_PERSONAS[pl.persona] || {}).tag || '電腦')}` : '👤 你'}</span></div><div class="text-[11px] opacity-65 truncate">屠戶叫他「${huMood(pl).call}」${pl.skip?'・休息中':''}</div>${CATCHUP.isBehind(pl, G) ? '<div class="text-[11px] text-zhu kai">🔥 追分中：答對體面 +1、可補考</div>' : CATCHUP.isLeader(pl, G) ? '<div class="text-[11px] kai" style="color:var(--jin)">👑 領先：奉承加成上限 +1</div>' : ''}</div>
         <span class="chip ${pl.rank===2?'down':'neu'} kai">${RANKS[pl.rank].name}</span></div>
       <div class="flex justify-between mt-1.5 text-sm kai"><span>體面 <b>${pl.timian}</b></span><span>人情 <b>${pl.renqing}</b></span><span class="text-zhu">聲望 <b>${score(pl)}</b></span></div>
     </div>`).join('');
-  const mb = $('#btnMode'); mb.textContent = G.view === '3d' ? '改用 2D' : '改用 3D';
+  $('#miniBar').innerHTML = G.players.map((pl, i) => `
+    <div class="mini-p ${i===G.cur?'cur':''}" title="${esc(pl.name)}"><span class="ptok" style="background:${pl.color}">${esc(pl.tok)}</span>
+      <span class="nm">${esc(pl.name)}</span><span class="text-[11px] opacity-70">${pl.rank ? RANKS[pl.rank].name.slice(0,1) : ''}</span><b class="ml-auto">${score(pl)}</b></div>`).join('');
+  const mb = $('#btnMode'); mb.textContent = innerWidth < 600 ? (G.view === '3d' ? '2D' : '3D') : (G.view === '3d' ? '改用 2D' : '改用 3D'); mb.title = G.view === '3d' ? '改用 2D 棋盤' : '改用 3D 棋盤';
   $('#modeBadge').textContent = G.view === '3d' ? '3D 棋盤・拖曳旋轉／雙指縮放／點格子看說明' : '2D 棋盤・點格子看說明';
   $('#logBox').innerHTML = G.log.map(l => `<div class="log-line">${l}</div>`).join('');
   updateTimer();
@@ -1514,7 +1926,7 @@ setInterval(() => {
   if (G.remain % 15 === 0) save();
   if (G.remain <= 0){
     G.timeUp = true; toast('⏰ 時間到！這一回合結束後就放榜。', 4000);
-    if (!busy) endGame();
+    if (!busy) endGame('time');
   }
 }, 1000);
 function showScreen(id){
@@ -1527,44 +1939,48 @@ function showScreen(id){
 /* =====================================================================
    九、開局設定
    ===================================================================== */
-let setupCfg = Object.assign({ n:2, names:['第一組','第二組','第三組','第四組'], toks:['甲','乙','丙','丁'], time:'20', custom:15, qTime:'30', mode:'auto' }, STORE.get('config', {}));
+// 舊版（分組）的設定欄位不再使用；只取需要的
+const _oldCfg = STORE.get('config', {});
+let setupCfg = { name:'', cls:'', seat:'', tok:'', nAI:2, diff:'normal', rounds:'10', time:'20', custom:15, qTime:'30', mode:'auto' };
+['name','cls','seat','tok','nAI','diff','rounds','time','custom','qTime','mode'].forEach(k => { if (_oldCfg[k] != null) setupCfg[k] = _oldCfg[k]; });
 function renderSetup(){
-  $$('#pCountBtns button').forEach(b => b.classList.toggle('on', +b.dataset.n === setupCfg.n));
-  $('#pRows').innerHTML = Array.from({ length:setupCfg.n }, (_, i) => `
-    <div class="flex items-center gap-2">
-      <span class="ptok" style="background:${PCOLORS[i].c}" id="ptPrev${i}">${esc(setupCfg.toks[i])}</span>
-      <input type="text" maxlength="10" class="flex-1 min-w-0 kai text-lg" value="${esc(setupCfg.names[i])}" data-name="${i}" placeholder="玩家／組名">
-      <label class="text-sm opacity-70 whitespace-nowrap">棋子字</label>
-      <input type="text" maxlength="1" class="w-14 text-center kai text-lg" value="${esc(setupCfg.toks[i])}" data-tok="${i}">
-    </div>`).join('');
-  $$('#pRows [data-name]').forEach(el => el.oninput = () => { setupCfg.names[+el.dataset.name] = el.value; });
-  $$('#pRows [data-tok]').forEach(el => el.oninput = () => { const i = +el.dataset.tok; setupCfg.toks[i] = el.value; $(`#ptPrev${i}`).textContent = el.value; });
+  const autoOpt = $('#selMode option[value=auto]'); if (autoOpt && isPhone()) autoOpt.textContent = '自動（手機用 2D）';
+  $('#inpName').value = setupCfg.name; $('#inpClass').value = setupCfg.cls; $('#inpSeat').value = setupCfg.seat; $('#inpTok').value = setupCfg.tok;
+  $$('#aiCountBtns button').forEach(b => b.classList.toggle('on', +b.dataset.n === setupCfg.nAI));
+  $$('#diffBtns button').forEach(b => b.classList.toggle('on', b.dataset.d === setupCfg.diff));
+  $('#diffDesc').textContent = DIFFICULTY[setupCfg.diff].desc;
+  $('#aiList').innerHTML = AI_PERSONAS.slice(0, setupCfg.nAI).map((a, i) => `
+    <div class="flex items-center gap-2 text-sm"><span class="ptok" style="width:26px;height:26px;font-size:.85rem;background:${PCOLORS[i + 1].c}">${esc(a.tok)}</span>
+      <b class="kai">${esc(a.name)}</b><span class="opacity-70">${esc(a.intro)}</span></div>`).join('');
+  $('#selRounds').value = setupCfg.rounds;
   $('#selTime').value = setupCfg.time; $('#inpTimeCustom').value = setupCfg.custom; $('#selQTime').value = setupCfg.qTime; $('#selMode').value = setupCfg.mode;
   $('#inpTimeCustom').style.display = setupCfg.time === 'custom' ? 'block' : 'none';
 }
 function readSetup(){
+  setupCfg.name = $('#inpName').value.trim(); setupCfg.cls = $('#inpClass').value.trim(); setupCfg.seat = $('#inpSeat').value.trim(); setupCfg.tok = $('#inpTok').value.trim();
+  setupCfg.rounds = $('#selRounds').value;
   setupCfg.time = $('#selTime').value; setupCfg.custom = Math.max(1, Math.min(180, parseInt($('#inpTimeCustom').value) || 15));
   setupCfg.qTime = $('#selQTime').value; setupCfg.mode = $('#selMode').value; STORE.set('config', setupCfg);
   const minutes = setupCfg.time === 'custom' ? setupCfg.custom : +setupCfg.time;
+  const name = setupCfg.name || '考生';
+  const tok = setupCfg.tok.slice(0, 1) || name.slice(0, 1);
   return {
-    minutes, qTime: +setupCfg.qTime, mode: setupCfg.mode,
-    players: Array.from({ length:setupCfg.n }, (_, i) => {
-      const name = (setupCfg.names[i] || '').trim() || `第${'一二三四'[i]}組`;
-      const tok = (setupCfg.toks[i] || '').trim().slice(0, 1) || name.slice(0, 1);
-      return { name, tok };
-    })
+    minutes, qTime: +setupCfg.qTime, mode: setupCfg.mode, rounds: +setupCfg.rounds, diff: setupCfg.diff,
+    name, cls: setupCfg.cls, seat: setupCfg.seat,
+    players: [{ name, tok }].concat(AI_PERSONAS.slice(0, setupCfg.nAI).map((a, i) => ({ name:a.name, tok:a.tok, isAI:true, persona:i })))
   };
 }
 async function startGame(cfg){
   G = newState(cfg); busy = false;
   showScreen('scrGame');
-  log(`科場開考！共 ${G.players.length} 位考生。${G.timeLimit ? `限時 ${cfg.minutes} 分鐘。` : '不計時。'}`);
+  log(`科場開考！你與 ${G.players.length - 1} 位電腦對手（${DIFFICULTY[cfg.diff].name}）同場應考。${G.maxRounds ? `共 ${G.maxRounds} 輪，` : ''}${G.timeLimit ? `限時 ${cfg.minutes} 分鐘。` : '不計時。'}`);
   await mountRenderer(cfg.mode === '2d' ? '2d' : '3d', { auto: cfg.mode === 'auto' });
   G.players.forEach(p => p.moodKey = huMood(p).key);
   startTurn();
 }
 async function resumeGame(){
   const s = STORE.get('save', null); if (!s || s.over) return;
+  if (!s.v || s.v < 2){ STORE.del('save'); toast('舊版（分組）存檔無法接續，請開新局'); return goTitle(); }
   G = s; busy = false; showScreen('scrGame');
   await mountRenderer(G.view === '2d' ? '2d' : '3d', { auto: G.cfg.mode === 'auto' && G.view !== '2d' });
   toast('已接續上一局'); startTurn();
@@ -1581,7 +1997,9 @@ function openRules(){
   openSheet(`
     <h2 class="kai text-3xl mb-3">📖 玩法說明</h2>
     <div class="space-y-3 leading-relaxed">
-      <p><b class="kai text-lg">目標：</b>沿著〈范進中舉〉的故事時間軸走棋，答題、抽卡、應考，累積<b>聲望</b>。時間到時聲望最高者為「解元」。<b>沒有人會破產出局</b>，大家都玩到最後。</p>
+      <p><b class="kai text-lg">目標：</b>這是<b>單人遊戲</b>：你和 1–3 位電腦對手沿著〈范進中舉〉的故事時間軸走棋，答題、抽卡、應考，累積<b>聲望</b>。回合數或時間到時，聲望最高者為「解元」。<b>沒有人會破產出局</b>，大家都玩到最後。</p>
+      <p><b class="kai text-lg">電腦對手：</b>魏好古（同案秀才，重情義）、集上高鄰（報喜鄰居，愛錦上添花）、跳駝子郎中（精打細算）。電腦會自己擲骰、答題、抽卡；難度決定它們的答對率：簡單約 50%、普通約 65%、困難約 80%。</p>
+      <p><b class="kai text-lg">🏅 證書：</b>以<b>「普通」或「困難」</b>難度拿下第一名（且至少擲過 ${CERT_RULE.minTurns} 次骰子），即可領取由「${esc(CERTIFIER)}」認證的證書，可下載 PNG 或直接列印。</p>
       <p><b class="kai text-lg">聲望＝</b>體面＋人情＋功名加分（童生 0、秀才 +5、舉人 +10）。</p>
       <div><b class="kai text-lg">回合：</b>擲一顆骰子前進。停在格子上：</div>
       <ul class="list-disc pl-6">
@@ -1591,11 +2009,11 @@ function openRules(){
         <li>經過起點「應考半生」：人情 +1。</li>
       </ul>
       <p><b class="kai text-lg">胡屠戶的臉色：</b>依你的功名與體面變化──童生時被罵「現世寶」，中了舉就成了「賢婿老爺」。停在胡屠戶格時，他的臉色決定你是挨罵還是被奉承。這正是課文的「前倨後恭」。</p>
-      <p><b class="kai text-lg">公平機制（追分）：</b>聲望比全體平均低 3 分以上的玩家會顯示「🔥 追分中」：答對題目額外體面 +1，考場答錯可「補考」一次。胡屠戶的奉承越聽越不稀罕（加成遞減），領先者的奉承加成最多 +1。另有 9 張「追分卡」專門照顧落後的玩家（鄰里接濟、名落孫山也可再考、宗師憐才、樹大招風……）。</p>
+      <p><b class="kai text-lg">公平機制（追分）：</b>聲望比全體平均低 3 分以上的考生（你或電腦都一樣）會顯示「🔥 追分中」：答對題目額外體面 +1，考場答錯可「補考」一次。胡屠戶的奉承越聽越不稀罕（加成遞減），領先者的奉承加成最多 +1。另有 9 張「追分卡」專門照顧落後的玩家（鄰里接濟、名落孫山也可再考、宗師憐才、樹大招風……）。</p>
       <p><b class="kai text-lg">提示：</b>答題時可「請教同案」花 1 點人情刪去一個錯誤選項。</p>
       <p><b class="kai text-lg">3D／2D：</b>右上角按鈕可隨時切換，進度不會遺失。3D 可拖曳旋轉、雙指縮放，雙擊回正；點格子可看該格說明。</p>
       <div class="pt-1">${legend}</div>
-      <p class="text-sm opacity-70">※「鄉紳來訪」為延伸格，取材自原著第三回課文以後的情節。</p>
+      <p class="text-sm opacity-70">※ 課文、注釋、讀音依龍騰版〈范進中舉〉。「鄉紳來訪」為延伸格，取材自原著第三回課文節選以後的情節。</p>
     </div>`);
 }
 function openSettings(){
@@ -1604,10 +2022,12 @@ function openSettings(){
     <div class="grid gap-4">
       <div class="paper-card p-3"><div class="flex items-center gap-3"><b class="kai text-lg flex-1">背景音樂</b><button class="btn-ink" id="sBgm"></button></div>
         <input type="range" min="0" max="1" step="0.05" id="sBgmVol" class="w-full mt-2"><div class="text-xs opacity-60 mt-1" id="bgmStatus"></div>
+        <div class="text-xs opacity-60 mt-1">背景音樂約 4.3 MB，第一次點畫面後才開始串流下載；用行動網路時可關閉以節省流量。</div>
         <div class="text-xs opacity-60 mt-1">想換音樂？把新的音檔命名為 <code>bgm.mp3</code>，覆蓋同資料夾的舊檔即可。</div></div>
       <div class="paper-card p-3"><div class="flex items-center gap-3"><b class="kai text-lg flex-1">音效</b><button class="btn-ink" id="sSfx"></button><button class="btn-ink" id="sTest">試聽</button></div>
         <input type="range" min="0" max="1" step="0.05" id="sSfxVol" class="w-full mt-2"></div>
       <div class="flex flex-wrap gap-2">
+        <button class="btn-ink" data-open="rules">📖 玩法說明</button>
         <button class="btn-ink" id="sFull">⛶ 全螢幕</button>
         <button class="btn-ink" data-open="teacher">🧑‍🏫 教師模式（題庫）</button>
         ${G && !G.over ? '<button class="btn-ink" id="sHome">🏠 回首頁（進度已自動儲存）</button>' : ''}
@@ -1726,7 +2146,8 @@ function loadXLSX(){
    十一、啟動與事件綁定
    ===================================================================== */
 function goTitle(){
-  show('#btnResume', STORE.get('save', null) ? 'block' : 'none');
+  const sv = STORE.get('save', null);
+  show('#btnResume', sv && sv.v >= 2 ? 'block' : 'none');
   showScreen('scrTitle');
 }
 document.addEventListener('click', e => {
@@ -1736,17 +2157,43 @@ document.addEventListener('click', e => {
 $('#btnNew').onclick = () => { renderSetup(); showScreen('scrSetup'); };
 $('#btnResume').onclick = resumeGame;
 $('#btnSetupBack').onclick = goTitle;
-$$('#pCountBtns button').forEach(b => b.onclick = () => { setupCfg.n = +b.dataset.n; renderSetup(); });
+$$('#aiCountBtns button').forEach(b => b.onclick = () => { setupCfg.nAI = +b.dataset.n; renderSetup(); });
+$$('#diffBtns button').forEach(b => b.onclick = () => { setupCfg.diff = b.dataset.d; renderSetup(); });
+['inpName','inpClass','inpSeat','inpTok'].forEach((id, i) => $('#' + id).oninput = e => { setupCfg[['name','cls','seat','tok'][i]] = e.target.value; });
+$('#btnCertDl').onclick = downloadCert;
+$('#btnCertPrint').onclick = printCert;
+$('#btnCertOpen').onclick = openCert;
+// 棋盤放大／縮小（手機預設放大）
+$('#btnZoom').onclick = () => {
+  if (!R || R.name !== '2d') return;
+  STORE.set('zoom', !R.zoom); R.resize(); R.follow && R.follow(G.cur, false);
+  toast(R.zoom ? '棋盤已放大：可上下左右滑動，會自動跟著棋子' : '棋盤已縮小為整面', 1800);
+};
+/* ---------- 手機：防止誤觸縮放（雙擊放大、雙指縮放整頁）；3D 棋盤的雙指縮放不受影響 ---------- */
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false }); // iOS Safari
+document.addEventListener('dblclick', e => { if (!e.target.closest('#boardHost canvas')) e.preventDefault(); }, { passive:false });
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1 && !e.target.closest('#boardHost canvas')) e.preventDefault();
+}, { passive:false });
+/* ---------- 切到背景／鎖螢幕：暫停音樂、存檔；回來再續播 ---------- */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ SND.suspend(); if (G && !G.over) save(); }
+  else SND.resume();
+});
+window.addEventListener('pagehide', () => { if (G && !G.over) save(); });
 $('#selTime').onchange = e => { setupCfg.time = e.target.value; $('#inpTimeCustom').style.display = e.target.value === 'custom' ? 'block' : 'none'; };
-$('#btnStart').onclick = () => startGame(readSetup());
-$('#btnRoll').onclick = onRoll;
+$('#btnStart').onclick = () => {
+  if (!$('#inpName').value.trim()){ toast('請先輸入你的姓名（證書會用到）'); $('#inpName').focus(); return; }
+  startGame(readSetup());
+};
+$('#btnRoll').onclick = () => onRoll();
 $('#btnMode').onclick = toggleMode;
 $('#btnBgm').onclick = () => { SND.cfg.bgmOn = !SND.cfg.bgmOn; SND.save(); SND.unlock(); SND.syncBgm(); refreshAudioUI(); toast(SND.cfg.bgmOn ? '背景音樂：開' : '背景音樂：關', 1200); };
 $('#btnSfx').onclick = () => { SND.cfg.sfxOn = !SND.cfg.sfxOn; SND.save(); refreshAudioUI(); toast(SND.cfg.sfxOn ? '音效：開' : '音效：關', 1200); };
 $('#btnEnd').onclick = async () => {
-  if (!G || G.over) return; if (busy) return toast('請先完成這一步，再結算');
+  if (!G || G.over) return; if (busy || isAI(curP())) return toast(isAI(curP()) ? '電腦正在走棋，輪到你時再結算' : '請先完成這一步，再結算');
   const v = await openModal({ title:'要現在放榜嗎？', badge:'榜', html:'<p class="kai text-lg">將結束本局並依聲望排名。</p>', buttons:[{ label:'再玩一下', value:0, cls:'btn-ink' }, { label:'放榜！', value:1 }] });
-  if (v) endGame();
+  if (v) endGame('manual');
 };
 $('#btnHome').onclick = () => { G = null; goTitle(); };
 $('#btnAgain').onclick = () => startGame(G ? G.cfg : readSetup());
